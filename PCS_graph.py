@@ -3,11 +3,11 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from pyvis.network import Network
+#from pyvis.network import Network
 import math
 import warnings
-import numba
-from numba import njit, prange
+#import numba
+#from numba import njit, prange
 from time import perf_counter
 
 class PCS_graph:

@@ -7,9 +7,9 @@ import math
 from sklearn.metrics import top_k_accuracy_score
 
 import warnings
-from numba import njit, prange
-import multiprocessing as mup
-import psutil
+#from numba import njit, prange
+#import multiprocessing as mup
+#import psutil
 from functools import partial
 from time import perf_counter
 
@@ -591,19 +591,63 @@ class SCM:
         print("Number same and wrong predictions", np.sum(cf_same_wrong))
         return np.mean(loss, where= labels !=-999)
 
+    def get_accuracy_scores(self, predictions, labels, obs_labels):
+        out = np.full_like(labels, -999)
+        same_pred = np.repeat(np.expand_dims(obs_labels, axis=1),self.n_experts,axis=1)
+        loss_same_pred = np.not_equal(same_pred, labels, out=out, where= labels!=-999)
+        print("Mean accuracy for same pred estimation: ", 1-np.mean(loss_same_pred, where= labels!=-999))
+        diff = (labels != same_pred) & (labels != -999)
+        same = (labels == same_pred)
+        print("Number of same predictions: ", np.sum(same))
+        print("Number of different predictions: ", np.sum(diff))
+        print("Number of overall predictions: ", np.sum(same | diff))
+        acc_diff = np.mean(predictions[diff] == labels[diff])
+        print("Accuracy CSCM different predictions: ", acc_diff)
+        acc_same = np.mean(predictions[same] == labels[same])
+        print("Accuracy CSCM same predictions: ", acc_same)
+        acc_overall = np.mean(predictions[same | diff] == labels[same | diff])
+        print("Accuracy CSCM overall: ", acc_overall)
+        loss = np.not_equal(predictions, labels, out=out, where= labels!=-999)
+        print("Accuracy CSCM overall 2: ", np.mean(loss, where= labels !=-999))
+
     def score_counterfactuals_top_k(self, k, data, labels, obs_inds, obs_labels):
         predictions = self.predict_cfc_proba(data, obs_inds, obs_labels)
+        label_predictions = np.argmax(predictions, axis=2)
+        labels[np.arange(data.shape[0]), obs_inds] = -999 
+        print(label_predictions)
+        self.get_accuracy_scores(label_predictions, labels, obs_labels)
+        same_pred = np.repeat(np.expand_dims(obs_labels, axis=1),self.n_experts,axis=1)
+        diff = (labels != same_pred) & (labels != -999)
+        same = (labels == same_pred)
         #for any expert ind with label!=-999
         #check if labels in top k
-        scores = np.empty((self.n_experts))
+        scores_overall = np.empty((self.n_experts))
+        scores_diff = np.empty((self.n_experts))
+        scores_same = np.empty((self.n_experts))
         for ind in range(self.n_experts):
             pred_proba = predictions[:, ind,:]
-            seen_idx = labels[:, ind]!=-999
+            seen_idx = (labels[:, ind]!=-999) #& (obs_inds != ind)
             if np.any(seen_idx):
-                scores[ind]= top_k_accuracy_score(y_true=labels[seen_idx,ind], y_score=pred_proba[seen_idx], k=k, labels=np.arange(self.n_classes))
+                scores_overall[ind]= top_k_accuracy_score(y_true=labels[seen_idx,ind], y_score=pred_proba[seen_idx], k=k, labels=np.arange(self.n_classes))
             else:
-                scores[ind] = np.nan
-        return np.nanmean(scores)
+                scores_overall[ind] = np.nan
+
+            seen_idx_same = seen_idx & same[:,ind]
+            if np.any(seen_idx_same):
+                scores_same[ind]= top_k_accuracy_score(y_true=labels[seen_idx_same,ind], y_score=pred_proba[seen_idx_same], k=k, labels=np.arange(self.n_classes))
+            else:
+                scores_same[ind] = np.nan
+
+            seen_idx_diff = seen_idx & diff[:,ind]
+            if np.any(seen_idx_diff):
+                scores_diff[ind]= top_k_accuracy_score(y_true=labels[seen_idx_diff,ind], y_score=pred_proba[seen_idx_diff], k=k, labels=np.arange(self.n_classes))
+            else:
+                scores_diff[ind] = np.nan
+
+        print("Accuracy CSCM different predictions: ", np.nanmean(scores_diff))
+        print("Accuracy CSCM same predictions: ", np.nanmean(scores_same))
+        print("Accuracy CSCM overall: ", np.nanmean(scores_overall))
+        return np.nanmean(scores_overall)
 
     def score_counterfactuals_rand(self, data, labels, test_inds, test_labels):
         naive_counter = 0

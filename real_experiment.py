@@ -191,11 +191,11 @@ class RealExperiment:
         # score of counterfactual labels for the real group of the observed expert and non cf. labels for remaining experts in the trained scm group of the observed expert
         print("Evaluating Gumbel CSCM...")
         scores_trained = self.scm_model.score_counterfactuals_top_k(2, data_test, labels_test, obs_inds, obs_labels)
-        print("Gumbel-Max CSCM: ", scores_trained)
+        print("Gumbel-Max CSCM top 2 accuracy: ", scores_trained)
 
         print("Evaluating Naive CSCM...")
         scores_naive = self.scm_naive.score_counterfactuals_top_k(2, data_test, labels_test, obs_inds, obs_labels)
-        print("Naive: ", scores_naive)
+        print("Naive top 2 accuracy: ", scores_naive)
 
         out = np.full_like(labels_test, -999)
         same_pred = np.repeat(np.expand_dims(obs_labels, axis=1),self.n_experts,axis=1)
