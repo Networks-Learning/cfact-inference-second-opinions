@@ -63,8 +63,8 @@ class RealExperiment:
 
         lr = LogisticRegression(C=1.0)
         gnb = GaussianNB()
-        gnb_isotonic = CalibratedClassifierCV(gnb, cv=4, method="isotonic")
-        gnb_sigmoid = CalibratedClassifierCV(gnb, cv=4, method="sigmoid")
+        gnb_isotonic = CalibratedClassifierCV(gnb, cv=2, method="isotonic")
+        gnb_sigmoid = CalibratedClassifierCV(gnb, cv=2, method="sigmoid")
 
         clf_list = [
             (lr, "Logistic"),
@@ -250,8 +250,8 @@ def main():
     exp = RealExperiment(n_classes, n_experts, seed)
     exp.add_experts(range(n_experts), data, labels)
     exp.update_model(data, labels)
-    exp.evaluate_experiment( data_test, labels_test)
-    exp.evaluate_experiment_top_k( data_test, labels_test, labels)
+    exp.evaluate_experiment_seen( data_test, labels_test, labels)
+    exp.evaluate_experiment_seen_top_k( data_test, labels_test, labels)
         
 if __name__ == "__main__":
     main()
