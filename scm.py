@@ -16,7 +16,7 @@ from time import perf_counter
 
 class SCM:
     list_prob_functions = []
-    n_samples = 100 #50
+    n_samples = 2000 #50
     n_failed_r_sampling = 0
 
     def __init__(self, name, n_classes, list_prob_functions, group_members = [], naive = False):
@@ -145,7 +145,7 @@ class SCM:
         argmax = np.vectorize((lambda log_p: np.argmax( log_p + u)), signature='(n)->()')
         return argmax( group_prob)
     """
-    def sample_gumbels(trans_probabilities, s_p_real, num_of_samples):
+    def sample_gumbels(self,trans_probabilities, s_p_real, num_of_samples):
         
         #############################################
         # This part is adapted from https://cmaddis.github.io/gumbel-machinery
@@ -168,7 +168,8 @@ class SCM:
                 gumbels.append(gumbel)
             return gumbels
         #############################################
-        gumbels = [topdown(trans_probabilities, s_p_real, np.random.default_rng(seed+1)) for seed in range(num_of_samples)]
+        #gumbels = [topdown(trans_probabilities, s_p_real, np.random.default_rng(seed+1)) for seed in range(num_of_samples)]
+        gumbels = [topdown(trans_probabilities, s_p_real, self.rng) for seed in range(num_of_samples)]
 
         # Sanity check
         for gum in gumbels:
@@ -232,7 +233,7 @@ class SCM:
             full_count[val] = count
             return full_count
 
-        u = SCM.sample_gumbels(group_prob[g_ind,:], label, times)
+        u = self.sample_gumbels(group_prob[g_ind,:], label, times)
         argmax = np.vectorize((lambda p: np.argmax( np.log(p) + u, axis=1)), signature='(n)->(t)')
         prediction = argmax( group_prob)
         count_vec = np.vectorize(count, signature='(n)->(k)')
@@ -522,7 +523,7 @@ class SCM:
         # partition into training and validation set
 
         # Uncomment for validation
-        val_size = 0 #math.ceil(val_ratio * data.shape[0])
+        val_size = math.ceil(val_ratio * data.shape[0])
         print("Validation data size for greedy alg.: ", val_size)
         val_data, data = np.vsplit(data, [val_size])
         val_labels, labels = np.vsplit(labels, [val_size])
@@ -542,7 +543,10 @@ class SCM:
         if len(expert_list)>0:
             start = perf_counter()
             train_error_diff_list = self.get_error_diff_list(expert_list,data,labels)
-            val_error_diff_list = self.get_error_diff_list(expert_list,val_data,val_labels)
+            if val_ratio== 0.0:
+                val_error_diff_list = train_error_diff_list
+            else:
+                val_error_diff_list = self.get_error_diff_list(expert_list,val_data,val_labels)
             #set graph weights
             self.graph.set_training_weights(train_error_diff_list)
             self.graph.set_validation_weights(val_error_diff_list)
@@ -553,7 +557,7 @@ class SCM:
             #run fit to find best partition
 
             # Uncomment for validation
-            best_partition = self.graph.fit(1)#max_rounds)
+            best_partition = self.graph.fit(max_rounds)
             duration =  (perf_counter() - start)
             print("greedy algorithm runtime : ", duration, "s")
 
@@ -608,7 +612,7 @@ class SCM:
         acc_overall = np.mean(predictions[same | diff] == labels[same | diff])
         print("Accuracy CSCM overall: ", acc_overall)
         loss = np.not_equal(predictions, labels, out=out, where= labels!=-999)
-        print("Accuracy CSCM overall 2: ", np.mean(loss, where= labels !=-999))
+        print("Accuracy CSCM overall 2: ", 1-np.mean(loss, where= labels !=-999))
 
     def score_counterfactuals_top_k(self, k, data, labels, obs_inds, obs_labels):
         predictions = self.predict_cfc_proba(data, obs_inds, obs_labels)
