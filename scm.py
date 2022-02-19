@@ -16,7 +16,7 @@ from time import perf_counter
 
 class SCM:
     list_prob_functions = []
-    n_samples = 2000 #50
+    n_samples = 2000#500 #50
     n_failed_r_sampling = 0
 
     def __init__(self, name, n_classes, list_prob_functions, group_members = [], naive = False):
@@ -121,7 +121,7 @@ class SCM:
         counter = count_vec(prediction)
        
         if return_prob:
-            return counter.astype("float")/times
+            return counter.astype("float")/float(times)
         
         return np.argmax(counter, axis=1)
 
@@ -240,7 +240,8 @@ class SCM:
         counter = count_vec(prediction)
 
         if return_prob:
-            return counter.astype("float")/times
+            #print(counter.astype("float")/float(times))
+            return counter.astype("float")/float(times)
 
         return np.argmax(counter, axis=1)
 
@@ -313,7 +314,7 @@ class SCM:
 
 
     def predict_cfc_proba(self, data, obs_inds, obs_labels, times = n_samples):
-        proba = np.empty((data.shape[0], self.n_experts, self.n_classes))
+        proba = np.empty((data.shape[0], self.n_experts, self.n_classes), dtype=float)
         for x in range(data.shape[0]):
             prob = self.get_group_prob(data[x,:], self.group_members_sorted)
             list_group_predictions = [ self.sample_group_predictions(group_prob, times, return_prob=True) for group_prob in prob]

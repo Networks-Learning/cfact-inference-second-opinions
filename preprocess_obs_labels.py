@@ -31,9 +31,8 @@ labels_all = labels_all[sampling_mask]
 print("Train test split")
 data, data_test, labels, labels_test = train_test_split(data_all, labels_all, test_size=0.20, random_state=42)
 
-"""
 #choose random subset of experts with enough data points
-experts = (np.sum(labels!=-999, axis=0) > 120) & (np.sum(labels_test!=-999, axis=0) > 10)
+experts = (np.sum(labels!=-999, axis=0) > 130) & (np.sum(labels_test!=-999, axis=0) > 10)
 print("# experts with data: ", np.sum(experts))
 #rng = np.random.default_rng(42)
 #experts = rng.choice(n_nodes, sample_size, replace=False)
@@ -112,5 +111,6 @@ has_disagreement = vec_has_disagreement(labels[row_idx][:, clique])
 print("Number of full agreement:", data[row_idx].shape[0]-np.sum(has_disagreement))
 has_disagreement = vec_has_disagreement(labels_test[row_idx_test][:, clique])
 print("Number of full agreement:", data_test[row_idx_test].shape[0]-np.sum(has_disagreement))
+"""
 """
 """

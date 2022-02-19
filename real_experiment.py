@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import GaussianNB, CategoricalNB
 
 np.set_printoptions(precision=3)
 class RealExperiment:
@@ -20,7 +20,8 @@ class RealExperiment:
         self.n_experts = n_experts
 
         self.proba_models = []
-        self.baseline_models = []
+        self.logreg_baseline = []
+        self.nb_baseline = []
         self.minmaxsc_models = []
         self.list_proba_func = []
 
@@ -65,14 +66,15 @@ class RealExperiment:
         X_train = data[labels[:, expert]!=-999]
         y_train = labels[labels[:,expert]!=-999][:,expert]
 
-        lr = LogisticRegression(random_state=33, class_weight='balanced', max_iter=500)
+        lr = LogisticRegression(random_state=33,  max_iter=500,class_weight='balanced', penalty='l1', solver='saga')
         gnb = GaussianNB()
+        #gnb = GaussianNB(priors = np.repeat(0.1,10))
         gnb_isotonic = CalibratedClassifierCV(gnb, cv=2, method="isotonic")
         gnb_sigmoid = CalibratedClassifierCV(gnb, cv=2, method="sigmoid")
 
         clf_list = [
-            (lr, "Logistic"),
-            #(gnb, "Naive Bayes"),
+            #(lr, "Logistic"),
+            (gnb, "Naive Bayes"),
             #(gnb_isotonic, "Naive Bayes + Isotonic"),
             #(gnb_sigmoid, "Naive Bayes + Sigmoid"),
         ]
@@ -224,13 +226,15 @@ class RealExperiment:
             model = self.scm_naive
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
-        eval_matrix = np.zeros((total_predictions, 7))
+        eval_matrix = np.zeros((total_predictions, 17))
         print(eval_matrix.shape)
         current_ind = 0
         for obs_exp in range(self.n_experts):
             obs_group = self.scm_model.get_group_index(obs_exp)
             has_data = labels[:,obs_exp]!=-999
-            predictions = model.predict_counterfactuals(data[has_data], np.repeat(obs_exp,np.sum(has_data)), labels[has_data][:,obs_exp])
+            #predictions = model.predict_counterfactuals(data[has_data], np.repeat(obs_exp,np.sum(has_data)), labels[has_data][:,obs_exp])
+            proba = model.predict_cfc_proba(data[has_data], np.repeat(obs_exp,np.sum(has_data)), labels[has_data][:,obs_exp])
+            predictions = np.argmax(proba, axis=2)
             data_indices = np.arange(data.shape[0], dtype=int)[has_data]
             for i, x in enumerate(data_indices):
                 has_labels = labels[x]!=-999
@@ -238,10 +242,10 @@ class RealExperiment:
                 exp_indices = np.arange(self.n_experts, dtype=int)[has_labels]
                 for exp in exp_indices:
                     same_group = self.scm_model.get_group_index(exp) == obs_group
-                    eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], predictions[i,exp], same_group ], dtype=int)
+                    eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], predictions[i,exp], same_group ]+ proba[i,exp].tolist(), dtype=float)
                     current_ind +=1
 
-        df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
+        df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"] + ['proba_' + str(i) for i in range(10)])
         df_eval_matrix.to_csv("data/evaluation_results_"+model_name+".csv", index=False)
  
         print(model_name)
@@ -270,7 +274,7 @@ class RealExperiment:
   
 
 
-    def fit_baseline_model(self,expert_list, data, labels):
+    def fit_nb_baseline(self,expert_list, data, labels):
       #proba_func_list = []
       for expert in expert_list:
         X_train = data[labels[:, expert]!=-999]
@@ -280,43 +284,39 @@ class RealExperiment:
         total_training_points = np.sum( n_labels_per_row )
         #enc_X_train = np.zeros((total_training_points, X_train.shape[1]+self.n_experts), dtype=float)
         enc_X_train = np.zeros((total_training_points, X_train.shape[1]), dtype=float)
-        enc_X_train_obs = np.zeros((total_training_points, self.n_experts), dtype=float)
+        enc_X_train_obs = np.full((total_training_points, self.n_experts), 0, dtype=int)
+        #enc_X_train_obs = np.full((total_training_points, self.n_experts), 10, dtype=int)
         enc_y_train = np.zeros((total_training_points), dtype=float)
         current_ind = 0
         for obs_exp in range(self.n_experts):
             if obs_exp != expert:
                 has_data = y_train[:,obs_exp]!=-999
                 for i,x in enumerate(X_train[has_data]):
-                    enc = np.zeros(self.n_experts)
-                    enc[obs_exp] = y_train[has_data][i,obs_exp]
+                    #enc = np.full(self.n_experts,10)
+                    enc = np.full(self.n_experts,0)
+                    enc[obs_exp] = y_train[has_data][i,obs_exp]+1
                     #enc_X_train[current_ind] = np.concatenate((x,enc.astype(float)), axis=None)
                     enc_X_train[current_ind] = x
-                    enc_X_train_obs[current_ind] = enc.astype(float)
+                    enc_X_train_obs[current_ind] = enc.astype(int)
                     enc_y_train[current_ind] = y_train[has_data][i,expert]
                     current_ind +=1
         
-        X_train = np.concatenate((enc_X_train, enc_X_train_obs), axis=1)
-        #self.minmaxsc_models.append(MinMaxScaler())
-        #X_train = self.minmaxsc_models[expert].fit_transform(X_train)
+        X_train = enc_X_train
+        X_train_cat = enc_X_train_obs
         y_train = enc_y_train
 
-        lr = LogisticRegression(random_state=33, class_weight='balanced', max_iter=1000)
         gnb = GaussianNB()
-        gnb_isotonic = CalibratedClassifierCV(gnb, cv=2, method="isotonic")
-        gnb_sigmoid = CalibratedClassifierCV(gnb, cv=2, method="sigmoid")
+        catnb = CategoricalNB(min_categories=np.repeat(11,self.n_experts))
 
         clf_list = [
-            (lr, "Logistic"),
-            #(gnb, "Naive Bayes"),
-            #(gnb_isotonic, "Naive Bayes + Isotonic"),
-            #(gnb_sigmoid, "Naive Bayes + Sigmoid"),
+            (gnb, "Naive Bayes"),
         ]
-        #proba_function = None
         for i, (clf, name) in enumerate(clf_list):
             clf.fit(X_train, y_train)
-            self.baseline_models.append(clf)
+            catnb.fit(X_train_cat, y_train)
+            self.nb_baseline.append((clf,catnb))
  
-    def get_eval_matrix_baseline(self, data, labels):
+    def get_eval_matrix_nb_baseline(self, data, labels):
         
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
@@ -326,7 +326,7 @@ class RealExperiment:
         for exp in range(self.n_experts):
             exp_group = self.scm_model.get_group_index(exp)
             has_data = labels[:,exp]!=-999
-            model = self.baseline_models[exp]
+            gnb, catnb = self.nb_baseline[exp]
             data_indices = np.arange(data.shape[0], dtype=int)[has_data]
             for x in data_indices:
                 has_labels = labels[x]!=-999
@@ -335,16 +335,107 @@ class RealExperiment:
                 for obs_exp in obs_indices:
                         same_group = self.scm_model.get_group_index(obs_exp) == exp_group
                         has_data = labels[:,obs_exp]!=-999
-                        feat_enc = np.zeros(self.n_experts)
-                        feat_enc[obs_exp] = labels[x,obs_exp]
-                        X = np.expand_dims(np.concatenate((data[x],feat_enc), axis=None),axis=0)
-                       # X = self.minmaxsc_models[exp].transform(X)
+                        feat_enc = np.full(self.n_experts, 0)
+                        #feat_enc = np.full(self.n_experts, 10)
+                        feat_enc[obs_exp] = labels[x,obs_exp]+1
+                        X = np.expand_dims(data[x],axis=0)
+                        X_cat = np.expand_dims(feat_enc,axis=0)
+                        proba = gnb.predict_proba(X) * catnb.predict_proba(X_cat) / gnb.class_prior_
+                        prediction = np.argmax(proba, axis=1)
+                        eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction[0], same_group ], dtype = int)
+                        current_ind +=1
+
+        df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
+        df_eval_matrix.to_csv("data/evaluation_results_nb_baseline.csv", index=False)
+        
+        print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
+        print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
+        print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
+        
+        print("Accuracy per expert: ")
+        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,2]==exp) for exp in range(self.n_experts)])
+        print(acc)
+        print(np.nanmean(acc))
+        print("Accuracy per expert in same group: ")
+        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
+        print(acc)
+        print(np.nanmean(acc))
+
+        print("Accuracy diff per expert in same group: ")
+        acc=np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,4]!=eval_matrix[:,3]) & (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
+        print(acc)
+        print(np.nanmean(acc))
+        #print("Accuracy per obs expert:")
+        #print(np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,1]==exp) for exp in range(self.n_experts)]))
+  
+
+    def fit_logreg_baseline(self,expert_list, data, labels):
+      #proba_func_list = []
+      for expert in expert_list:
+        X_train = data[labels[:, expert]!=-999]
+        y_train = labels[labels[:,expert]!=-999]
+
+        n_labels_per_row = np.sum(y_train!=-999, axis=1)-1
+        total_training_points = np.sum( n_labels_per_row )
+        enc_X_train = np.zeros((total_training_points, X_train.shape[1]), dtype=float)
+        enc_X_train_obs = np.full((total_training_points, self.n_experts), 0, dtype=int)
+        #enc_X_train_obs = np.full((total_training_points, self.n_experts), 10, dtype=int)
+        enc_y_train = np.zeros((total_training_points), dtype=float)
+        current_ind = 0
+        for obs_exp in range(self.n_experts):
+            if obs_exp != expert:
+                has_data = y_train[:,obs_exp]!=-999
+                for i,x in enumerate(X_train[has_data]):
+                    #enc = np.full(self.n_experts,10)
+                    enc = np.full(self.n_experts,0)
+                    enc[obs_exp] = y_train[has_data][i,obs_exp]+1
+                    #enc_X_train[current_ind] = np.concatenate((x,enc.astype(float)), axis=None)
+                    enc_X_train[current_ind] = x
+                    enc_X_train_obs[current_ind] = enc.astype(int)
+                    enc_y_train[current_ind] = y_train[has_data][i,expert]
+                    current_ind +=1
+        
+        X_train = np.hstack([enc_X_train, enc_X_train_obs])
+        #self.minmaxsc_models.append(MinMaxScaler())
+        #X_train = self.minmaxsc_models[expert].fit_transform(X_train)
+        y_train = enc_y_train
+
+        #lr = LogisticRegression(random_state=33, max_iter=2000, class_weight='balanced', penalty='elasticnet', solver='saga', l1_ratio= 1.0)
+        lr = LogisticRegression(random_state=33, max_iter=1000, class_weight='balanced')
+
+        lr.fit(X_train, y_train)
+        self.logreg_baseline.append(lr)
+ 
+    def get_eval_matrix_logreg_baseline(self, data, labels):
+        
+        n_labels_per_row = np.sum(labels!=-999, axis=1)
+        total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
+        eval_matrix = np.zeros((total_predictions, 7))
+        print(eval_matrix.shape)
+        current_ind = 0
+        for exp in range(self.n_experts):
+            exp_group = self.scm_model.get_group_index(exp)
+            has_data = labels[:,exp]!=-999
+            model = self.logreg_baseline[exp]
+            data_indices = np.arange(data.shape[0], dtype=int)[has_data]
+            for x in data_indices:
+                has_labels = labels[x]!=-999
+                has_labels[exp] = False
+                obs_indices = np.arange(self.n_experts, dtype=int)[has_labels]
+                for obs_exp in obs_indices:
+                        same_group = self.scm_model.get_group_index(obs_exp) == exp_group
+                        has_data = labels[:,obs_exp]!=-999
+                        feat_enc = np.full(self.n_experts, 0)
+                        #feat_enc = np.full(self.n_experts, 10)
+                        feat_enc[obs_exp] = labels[x,obs_exp]+1
+                        X = np.expand_dims(np.hstack([data[x],feat_enc]),axis=0)
+                        #X = self.minmaxsc_models[exp].transform(X)
                         prediction = model.predict(X)
                         eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction[0], same_group ], dtype = int)
                         current_ind +=1
 
         df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
-        df_eval_matrix.to_csv("data/evaluation_results_baseline.csv", index=False)
+        df_eval_matrix.to_csv("data/evaluation_results_logreg_baseline.csv", index=False)
         
         print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
         print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
@@ -430,7 +521,6 @@ def main():
     data = scaler.fit_transform(data)
     data_test = scaler.transform(data_test)
 
-
     exp.add_experts(range(n_experts), data, labels)
     exp.evaluate_marginal_estimators(data_test, labels_test)
     exp.update_model(data, labels)
@@ -438,8 +528,11 @@ def main():
     #exp.evaluate_experiment_seen_top_k( data_test, labels_test, labels)
     exp.get_eval_matrix( data_test, labels_test)
     exp.get_eval_matrix( data_test, labels_test, model_name="naive")
-    exp.fit_baseline_model( range(n_experts),data, labels)
-    exp.get_eval_matrix_baseline( data_test, labels_test)
+
+    exp.fit_logreg_baseline( range(n_experts),data, labels)
+    exp.get_eval_matrix_logreg_baseline( data_test, labels_test)
+    exp.fit_nb_baseline( range(n_experts),data, labels)
+    exp.get_eval_matrix_nb_baseline( data_test, labels_test)
     #exp.evaluate_experiment( data_test, labels_test)
         
 if __name__ == "__main__":
