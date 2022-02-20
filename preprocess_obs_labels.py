@@ -31,6 +31,7 @@ labels_all = labels_all[sampling_mask]
 print("Train test split")
 data, data_test, labels, labels_test = train_test_split(data_all, labels_all, test_size=0.20, random_state=42)
 
+"""
 #choose random subset of experts with enough data points
 experts = (np.sum(labels!=-999, axis=0) > 130) & (np.sum(labels_test!=-999, axis=0) > 10)
 print("# experts with data: ", np.sum(experts))
@@ -72,9 +73,18 @@ print("Constructing edge matrix")
 edges = np.ones((n_nodes,n_nodes))
 for i in range(n_nodes):
     has_data = labels[labels[:,i] != -999] != -999
-    edges[i,:] = np.sum(has_data, axis=0) !=0
+    #edges[i,:] = np.sum(has_data, axis=0) !=0
+    has_data_test = labels_test[labels_test[:,i] != -999]!=-999
+    edges[i,:] = (np.sum(has_data, axis=0) >0) & (np.sum(has_data, axis=0) < 15) & (np.sum(has_data_test,axis=0)>5) & (np.sum(labels[:,i] != -999)>100)
 
 np.fill_diagonal(edges, 0)
+print(np.sum(edges))
+not_remove = np.sum(edges, axis=1)>1
+edges = edges[not_remove][:, not_remove]
+clique=np.arange(2571,dtype=int)[not_remove]
+print(edges.shape)
+print(edges[1:3])
+
 
 print("Finding the max clique")
 #G = nx.Graph(edges)
@@ -86,7 +96,10 @@ print("Finding the max clique")
 #clique 0.05% disagree
 #clique=[2048, 1665, 1, 1037, 911, 1296, 1295, 1167, 1299, 17, 1813, 920, 665, 1692, 1914, 286, 416, 1953, 1056, 2081, 544, 550, 1705, 306, 950, 441, 1977, 2108, 193, 1858, 2371, 1353, 2506, 1099, 2382, 1361, 725, 2006, 600, 88, 1754, 2145, 1250, 1510, 1006, 2286, 1135, 1521, 626, 114, 248, 2426]
 #clique 0.01% disagree
-clique = [2560, 2561, 2562, 2563, 2049, 2437, 1032, 395, 2316, 908, 654, 527, 139, 1938, 1814, 1948, 1308, 797, 2465, 1570, 296, 2345, 1066, 2475, 939, 429, 173, 2479, 1712, 1462, 1213, 2367, 65, 1346, 963, 453, 838, 462, 1872, 595, 2521, 2009, 729, 2015, 994, 2275, 2534, 1766, 2536, 488, 1516, 367, 2545, 1141, 2550, 759, 2554, 1531, 2556]
+#clique = [2560, 2561, 2562, 2563, 2049, 2437, 1032, 395, 2316, 908, 654, 527, 139, 1938, 1814, 1948, 1308, 797, 2465, 1570, 296, 2345, 1066, 2475, 939, 429, 173, 2479, 1712, 1462, 1213, 2367, 65, 1346, 963, 453, 838, 462, 1872, 595, 2521, 2009, 729, 2015, 994, 2275, 2534, 1766, 2536, 488, 1516, 367, 2545, 1141, 2550, 759, 2554, 1531, 2556]
+
+#param(0,50,10,100)
+
 
 print(clique)
 print("Saving data")
@@ -111,6 +124,5 @@ has_disagreement = vec_has_disagreement(labels[row_idx][:, clique])
 print("Number of full agreement:", data[row_idx].shape[0]-np.sum(has_disagreement))
 has_disagreement = vec_has_disagreement(labels_test[row_idx_test][:, clique])
 print("Number of full agreement:", data_test[row_idx_test].shape[0]-np.sum(has_disagreement))
-"""
 """
 """

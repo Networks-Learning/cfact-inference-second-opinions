@@ -138,16 +138,16 @@ class SyntheticExperiment:
 
 def main():
     n_classes = 5
-    n_features = 8
-    n_groups = 10
+    n_features = 20
+    n_groups = 6
     size_max = 15
-    size_min = 3
+    size_min = 5
     seed = 44 
     exp = SyntheticExperiment(n_classes, n_features, n_groups, size_max, size_min, seed)
-    N_test=100
+    N_test=1000
     T= 5
-    N_training_list = [5, 20,70,100,400, 600]#[5, 20, 70, 100, 200, 400]#[5,20,60,90,120] 
-    sparsity_prob_list = [0.8, 0.9, 0.95]#[0.0, 0.3, 0.6, 0.8, 0.95]#list(np.linspace(0, 1, num=5, endpoint=False))
+    N_training_list = [5, 20, 70, 100, 200, 400]#[5,20,60,90,120] 
+    sparsity_prob_list = [0.0, 0.3, 0.6, 0.8, 0.95]#list(np.linspace(0, 1, num=5, endpoint=False))
     exp.run_experiment(T, N_test, sparsity_prob_list, N_training_list)
 
 if __name__ == "__main__":

@@ -11,6 +11,9 @@ from sklearn.calibration import CalibratedClassifierCV, CalibrationDisplay
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB, CategoricalNB
 
+import networkx as nx
+from networkx.algorithms.approximation import max_clique
+
 np.set_printoptions(precision=3)
 class RealExperiment:
     def __init__(self, n_classes, n_experts, seed=44):
@@ -224,7 +227,9 @@ class RealExperiment:
         model = self.scm_model
         if model_name=="naive":
             model = self.scm_naive
+        print(np.sum(labels!=-999, axis=1))
         n_labels_per_row = np.sum(labels!=-999, axis=1)
+        print(n_labels_per_row)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
         eval_matrix = np.zeros((total_predictions, 17))
         print(eval_matrix.shape)
@@ -459,7 +464,6 @@ class RealExperiment:
   
 
 def main():
-    n_experts = 500
     n_classes = 10
     seed = 44
     """
@@ -497,9 +501,34 @@ def main():
     #print(labels)
     print("Data shape: ", data.shape)
     print("Labels shape: ", labels.shape)
-
+    """
     n_experts = labels.shape[1]
+    has_data= np.zeros((n_experts,n_experts))
+    for exp in range(n_experts):
+        for obs in range(n_experts):
+            has_data[exp,obs] = np.sum((labels[:,exp]!=-999) & (labels[:,obs]!=-999))
     
+    print(np.sum(has_data<10, axis=1))
+    exps = np.arange(n_experts, dtype=int)[has_data[4]<10]
+    print(has_data[:,exps])
+
+    G = nx.Graph(has_data<50)
+    clique = list(max_clique(G))
+    print(clique)
+
+    row_idx = np.any(labels[:,clique]!=-999, axis=1)
+    data = data[row_idx]
+    labels = labels[row_idx][:,clique]
+    print(data.shape)
+    row_idx_test = np.any(labels_test[:,clique]!=-999, axis=1)
+    data_test = data_test[row_idx_test]
+    labels_test = labels_test[row_idx_test][:,clique]
+    print(data_test.shape)
+
+
+    """    
+    n_experts = labels.shape[1]
+
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
 
@@ -524,8 +553,13 @@ def main():
     exp.add_experts(range(n_experts), data, labels)
     exp.evaluate_marginal_estimators(data_test, labels_test)
     exp.update_model(data, labels)
-    exp.evaluate_experiment_top_k( data_test, labels_test, labels)
+    #exp.evaluate_experiment_top_k( data_test, labels_test, labels)
     #exp.evaluate_experiment_seen_top_k( data_test, labels_test, labels)
+
+    row_idx_test = np.sum(labels_test!=-999, axis=1)>1
+    data_test = data_test[row_idx_test]
+    labels_test = labels_test[row_idx_test]
+    print(data_test.shape)
     exp.get_eval_matrix( data_test, labels_test)
     exp.get_eval_matrix( data_test, labels_test, model_name="naive")
 
@@ -534,7 +568,9 @@ def main():
     exp.fit_nb_baseline( range(n_experts),data, labels)
     exp.get_eval_matrix_nb_baseline( data_test, labels_test)
     #exp.evaluate_experiment( data_test, labels_test)
-        
+
+
+
 if __name__ == "__main__":
     main()
 
