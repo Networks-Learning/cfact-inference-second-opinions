@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import pandas as pd
 from scm import SCM
 from helper import *
 
@@ -50,15 +51,14 @@ class SyntheticExperiment:
       
       N_len = len(N_training_list)
       s_len = len(sparsity_prob_list)
-      scores_real = np.zeros((T,s_len,N_len))
-      scores_trained = np.zeros((T,s_len,N_len))
-      scores_naive = np.zeros((T,s_len,N_len))
-      scores_groups = np.zeros((T,s_len,N_len))
-      rate_inedges = np.zeros((T,s_len,N_len))
+      scores_real = np.full((T,s_len,N_len), np.nan)
+      scores_trained = np.full((T,s_len,N_len), np.nan)
+      scores_naive = np.full((T,s_len,N_len), np.nan)
+      scores_groups = np.full((T,s_len,N_len), np.nan)
+      rate_inedges = np.full((T,s_len,N_len), np.nan)
   
       for t in range(T):
         full_data_training, data_test, full_label_training, label_test = self.create_synthetic_data(max(N_training_list), N_test)
-        #fig, axs = plt.subplots(s_len, N_len)
         for s, sparsity_prob in enumerate(sparsity_prob_list):
             max_N = max(N_training_list)
             missing_inds = [self.rng.choice(a=range(self.n_experts), size = ( int(sparsity_prob*self.n_experts)), replace=False) for x in range(max_N)]
@@ -82,11 +82,12 @@ class SyntheticExperiment:
                 data_training = full_data_training[0:N_training]
                 label_training = sparse_labels[0:N_training]
 
+                rate_inedges[t,s,n] = self.scm_real_model.analyze_PCS_graph( data_training, label_training)
+                if rate_inedges[t,s,n]==1.0: continue
                 #trained SCM
                 scm_model = SCM("Trained", self.n_classes, self.scm_real_model.get_prob_function())
                 scm_model.fit( data_training, label_training)
                 
-                rate_inedges[t,s,n] = self.scm_real_model.analyze_PCS_graph( data_training, label_training)
                 #naive SCM
                 scm_naive = SCM("Naive", self.n_classes, self.scm_real_model.get_prob_function(), naive= True)
 
@@ -94,24 +95,17 @@ class SyntheticExperiment:
                 scores_groups[t,s,n] = compare_groups(scm_model, self.scm_real_model)
 
                 #compare performace of the models for counterfactual predictions in the group
-                #groups = [scm_model.get_group(ind) for ind in obs_inds]
-                #groups_real = [self.scm_real_model.get_group(ind) for ind in obs_inds]
                 # score of counterfactual labels for the real group of the observed expert and non cf. labels for remaining experts in the trained scm
                 # group of the observed expert 
                 scores_real[t,s,n] = self.scm_real_model.score_counterfactuals_rand(data_test, label_test, test_inds, label_test[range(N_test),test_inds])
                 scores_trained[t,s,n]= scm_model.score_counterfactuals_rand(data_test, label_test, test_inds, label_test[range(N_test),test_inds])
                 scores_naive[t,s,n] = scm_naive.score_counterfactuals_rand(data_test, label_test, test_inds, label_test[range(N_test),test_inds])
-
-                """
-                obs_inds = self.rng.integers(self.n_experts, size = N_test)
-                scores_trained[t,s,n]= scm_model.score_counterfactuals(data_test, label_test, obs_inds, label_test[range(N_test),obs_inds])
-                scores_real[t,s,n]= self.scm_real_model.score_counterfactuals(data_test, label_test, obs_inds, label_test[range(N_test),obs_inds])
-                scores_naive[t,s,n]= scm_naive.score_counterfactuals(data_test, label_test, obs_inds, label_test[range(N_test),obs_inds])
-                scores_trained[t,s,n]= scm_model.score(data_test, label_test)
-                scores_real[t,s,n]= self.scm_real_model.score(data_test, label_test)
-                scores_naive[t,s,n]= scm_naive.score(data_test, label_test)
-                """
-                #scm_model.print_number_failed_attemps()
+                print("Log Likelihood for this round:")
+                print("Real: ", scores_real[t,s,n])
+                print("Trained: ", scores_trained[t,s,n])
+                print("Naive: ", scores_naive[t,s,n])
+                print("ARI: ", scores_groups[t,s,n])
+                print("Rate: ", rate_inedges[t,s,n])
             
 
       mean_score_real = np.mean(scores_real, axis=0)
@@ -130,24 +124,52 @@ class SyntheticExperiment:
       print("Score CF: ", mean_score_trained, "+-", std_score_trained)
       print("Score Real CF: ", mean_score_real, "+-", std_score_real)
 
+     
+      df_mean_real = pd.DataFrame(mean_score_real, columns = N_training_list, index= sparsity_prob_list)
+      df_mean_real.to_csv("synthetic/mean_real.csv")
+      df_std_real = pd.DataFrame(std_score_real, columns = N_training_list, index= sparsity_prob_list)
+      df_std_real.to_csv("synthetic/std_real.csv")
+ 
+      df_mean_trained = pd.DataFrame(mean_score_trained, columns = N_training_list, index= sparsity_prob_list)
+      df_mean_trained.to_csv("synthetic/mean_trained.csv")
+      df_std_trained = pd.DataFrame(std_score_trained, columns = N_training_list, index= sparsity_prob_list)
+      df_std_trained.to_csv("synthetic/std_trained.csv")
+ 
+      df_mean_naive = pd.DataFrame(mean_score_naive, columns = N_training_list, index= sparsity_prob_list)
+      df_mean_naive.to_csv("synthetic/mean_naive.csv")
+      df_std_naive = pd.DataFrame(std_score_naive, columns = N_training_list, index= sparsity_prob_list)
+      df_std_naive.to_csv("synthetic/std_naive.csv")
+ 
+      df_mean_groups = pd.DataFrame(mean_score_groups, columns = N_training_list, index= sparsity_prob_list)
+      df_mean_groups.to_csv("synthetic/mean_groups.csv")
+      df_std_groups = pd.DataFrame(std_score_groups, columns = N_training_list, index= sparsity_prob_list)
+      df_std_groups.to_csv("synthetic/std_groups.csv")
+ 
+      df_mean_inedge = pd.DataFrame(mean_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
+      df_mean_inedge.to_csv("synthetic/mean_inedge.csv")
+      df_std_inedge = pd.DataFrame(std_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
+      df_std_inedge.to_csv("synthetic/std_inedge.csv")
+
       plot(sparsity_prob_list, N_training_list, mean_score_real, mean_score_trained, mean_score_naive, std_score_real, std_score_trained, std_score_naive)
       plot_group_comparison(sparsity_prob_list, N_training_list, mean_score_groups, std_score_groups)
       plot_rate_inedge(sparsity_prob_list, N_training_list, mean_rate_inedge, std_rate_inedge)
       scm_model.save()
+ 
+
 
 
 def main():
     n_classes = 5
     n_features = 20
-    n_groups = 6
+    n_groups = 5
     size_max = 15
     size_min = 5
     seed = 44 
     exp = SyntheticExperiment(n_classes, n_features, n_groups, size_max, size_min, seed)
     N_test=1000
-    T= 5
-    N_training_list = [5, 20, 70, 100, 200, 400]#[5,20,60,90,120] 
-    sparsity_prob_list = [0.0, 0.3, 0.6, 0.8, 0.95]#list(np.linspace(0, 1, num=5, endpoint=False))
+    T= 1
+    N_training_list = [10, 20, 70, 100, 200, 400]#[5,20,60,90,120] 
+    sparsity_prob_list = [0.1, 0.3, 0.6, 0.8, 0.95]#list(np.linspace(0, 1, num=5, endpoint=False))
     exp.run_experiment(T, N_test, sparsity_prob_list, N_training_list)
 
 if __name__ == "__main__":
