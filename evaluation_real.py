@@ -12,13 +12,13 @@ np.set_printoptions(precision=3)
 path = "results_real/"
 
 def plot_confusion_matrix(eval_matrix, model_name):
-    fig, ax = plt.subplots()
+    w,h = get_fig_dim(width=2*487,fraction=0.4)
+    fig, ax = plt.subplots(figsize=(w,h))
     print("Confusion Matrix...",model_name)
     labels = ["airplane", "automobile", "bird", "cat", "deer", "dog","frog","horse","ship","truck"]
     #cm = confusion_matrix( eval_matrix[:,4], eval_matrix[:,5], labels= np.arange(10, dtype=int), normalize='true')
-    ConfusionMatrixDisplay.from_predictions(eval_matrix[:,4], eval_matrix[:,5],normalize='true', display_labels=labels, values_format='.2f', xticks_rotation='vertical', cmap='YlGnBu', ax=ax)
+    ConfusionMatrixDisplay.from_predictions(eval_matrix[:,4], eval_matrix[:,5],normalize='true', display_labels=labels, values_format='.2f', xticks_rotation='vertical', cmap='YlGnBu', ax=ax, colorbar=False)
     fig.tight_layout()
-    #plt.title("Confusion Matrix: "+ model_name)
     plt.savefig(path+"CM_"+model_name+".pdf")
     plt.show()
 
@@ -30,15 +30,12 @@ def plot_diff_acc_2D(trained, baseline, baseline_name, n_experts,ax):
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
     #plt.title(" Accuracy per Expert SI-SCM vs. "+ baseline_name)
     X, Y = np.meshgrid(x_edges, y_edges)
-    im = ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=4)
+    im = ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=6)
     ax.axline((1,1),slope=1, ls="--", color="red")
     ax.plot(np.nanmean(acc_baseline), np.nanmean(acc_trained), 'rx', markersize=8)
     ax.set_xlabel('Accuracy '+baseline_name)
     ax.set_ylabel('Accuracy G.-M. SI-SCM')
     return im
-    #ax.colorbar()
-    #plt.savefig(path+"hist2d_E_"+baseline_name)
-    #plt.show()
 
 def plot_diff_acc_group_2D(trained, baseline, baseline_name, n_experts, ax):
     acc_trained = np.array([np.mean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==1)) for exp in range(n_experts)])
@@ -46,23 +43,18 @@ def plot_diff_acc_group_2D(trained, baseline, baseline_name, n_experts, ax):
     print("scenario 2 - #experts not displayed: ", np.arange(n_experts,dtype=int)[np.isnan(acc_trained)])
     print("scenario 2 - #experts Gumbel-Max SI-SCM is more accurate for than ",baseline_name,": ", np.sum(acc_trained>acc_baseline))
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
-    #plt.title("Accuracy per Expert (group obs.) SI-SCM vs. "+ baseline_name)
     X, Y = np.meshgrid(x_edges, y_edges)
-    im = ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=4)
+    im = ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=6)
     ax.axline((1,1),slope=1, ls="--", color="red") 
     ax.plot(np.nanmean(acc_baseline), np.nanmean(acc_trained), 'rx', markersize=8)
     ax.set_xlabel('Accuracy '+baseline_name)
     ax.set_ylabel('Accuracy G.-M. SI-SCM')
     return im
-    #plt.colorbar()
-    #plt.savefig(path+"hist2d_GE_"+baseline_name)
-    #plt.show()
 
 def plot_diff_acc_nongroup_2D(trained, baseline, baseline_name, n_experts):
     acc_trained = np.array([np.mean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==0)) for exp in range(n_experts)])
     acc_baseline = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
-    #plt.title("Accuracy per Expert (non group obs.) SI-SCM vs. "+ baseline_name)
     X, Y = np.meshgrid(x_edges, y_edges)
     plt.pcolormesh(X, Y, H, cmap='YlGnBu')
     plt.axline((1,1),slope=1, ls="--", color="red") 
@@ -79,17 +71,13 @@ def plot_acc_gng_2D( baseline, baseline_name, n_experts,ax):
     acc_not_group = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
     print("scenario 2 vs.3 - #experts ", baseline_name," more accurate in 2 than 3: ", np.sum(acc_group>acc_not_group))
     H, x_edges, y_edges = np.histogram2d(acc_group, acc_not_group, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
-    #ax.title("Accuracy per Expert group vs. no group obs.: "+ baseline_name)
     X, Y = np.meshgrid(x_edges, y_edges)
-    im =ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=6)
+    im =ax.pcolormesh(X, Y, H, cmap='YlGnBu', vmin=0, vmax=7)
     ax.axline((1,1),slope=1, ls="--", color="red")
     ax.plot(np.nanmean(acc_not_group), np.nanmean(acc_group), 'rx', markersize=8)
     ax.set_ylabel(r"Accuracy for h,h' $\in \psi$")
     ax.set_xlabel(r"Accuracy for h,h' $\in \mathcal{H}$")
     return im
-    #ax.colorbar()
-    #ax.savefig(path+"hist2d_EGNG_"+baseline_name+".pdf")
-    #ax.show()
 
 def print_overall_acc(trained, untrained, nb, gnb):
     trained_acc = np.mean(trained[:,4]==trained[:,5])
@@ -141,7 +129,6 @@ def main():
 
     w,h = get_fig_dim(width=2*487,fraction=0.233)
     fig, axes = plt.subplots(figsize=(w,h))
-    #plot_diff_acc_2D(siscm_results, naive_results, "GNB", n_experts,axes)
     im =plot_diff_acc_2D(siscm_results, naive_results, "GNB", n_experts,axes)
     axes.set(aspect=1)
     #plt.colorbar(im, location='right',shrink=0.7)
@@ -176,7 +163,7 @@ def main():
     fig = axes.get_figure()
     fig.add_axes(ax_cb)
     im = plot_diff_acc_group_2D(siscm_results, nb_baseline_results, "Mixed NB", n_experts,axes)
-    matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=4), orientation='vertical', ticks=[0,1,2,3,4])
+    matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=6), orientation='vertical')#, ticks=[0,1,2,3,4])
     fig.tight_layout()
     plt.savefig(path+"compare_naivebayes_sc2.pdf")
     plt.show()
@@ -190,7 +177,7 @@ def main():
     fig.add_axes(ax_cb)
     im = plot_acc_gng_2D( nb_baseline_results, "Mixed NB", n_experts, axes)
     #plt.colorbar(im, location='right',shrink=0.7)
-    matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=6), orientation='vertical')
+    matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=7), orientation='vertical')
     fig.tight_layout()
     plt.savefig(path+"nb_baseline.pdf")
     plt.show()
