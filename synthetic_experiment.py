@@ -63,14 +63,14 @@ class SyntheticExperiment:
             max_N = max(N_training_list)
             missing_inds = [self.rng.choice(a=range(self.n_experts), size = ( int(sparsity_prob*self.n_experts)), replace=False) for x in range(max_N)]
             missing_inds = np.vstack(missing_inds)
-            print(missing_inds.shape)
+            #print(missing_inds.shape)
             minimum_inds = [self.rng.choice(a=range(self.n_experts), size = (2), replace = False) for x in range(max_N)]
             minimum_inds = np.vstack(minimum_inds)
             sparse_labels = np.copy(full_label_training)
             minimum_labels = sparse_labels[ np.arange(max_N)[:, np.newaxis], minimum_inds]
             sparse_labels[np.arange(max_N)[:,np.newaxis], missing_inds] = -999
             #print(missing_inds)
-            print(sparse_labels)
+            #print(sparse_labels)
             #print(sparse_labels[:, missing_inds])
             sparse_labels[np.arange(max_N)[:, np.newaxis], minimum_inds] = minimum_labels
             test_inds = self.rng.integers(self.n_experts, size = N_test)
@@ -126,29 +126,29 @@ class SyntheticExperiment:
 
      
       df_mean_real = pd.DataFrame(mean_score_real, columns = N_training_list, index= sparsity_prob_list)
-      df_mean_real.to_csv("synthetic/mean_real.csv")
+      df_mean_real.to_csv("results_synthetic/mean_real.csv")
       df_std_real = pd.DataFrame(std_score_real, columns = N_training_list, index= sparsity_prob_list)
-      df_std_real.to_csv("synthetic/std_real.csv")
+      df_std_real.to_csv("results_synthetic/std_real.csv")
  
       df_mean_trained = pd.DataFrame(mean_score_trained, columns = N_training_list, index= sparsity_prob_list)
-      df_mean_trained.to_csv("synthetic/mean_trained.csv")
+      df_mean_trained.to_csv("results_synthetic/mean_trained.csv")
       df_std_trained = pd.DataFrame(std_score_trained, columns = N_training_list, index= sparsity_prob_list)
-      df_std_trained.to_csv("synthetic/std_trained.csv")
+      df_std_trained.to_csv("results_synthetic/std_trained.csv")
  
       df_mean_naive = pd.DataFrame(mean_score_naive, columns = N_training_list, index= sparsity_prob_list)
-      df_mean_naive.to_csv("synthetic/mean_naive.csv")
+      df_mean_naive.to_csv("results_synthetic/mean_naive.csv")
       df_std_naive = pd.DataFrame(std_score_naive, columns = N_training_list, index= sparsity_prob_list)
-      df_std_naive.to_csv("synthetic/std_naive.csv")
+      df_std_naive.to_csv("results_synthetic/std_naive.csv")
  
       df_mean_groups = pd.DataFrame(mean_score_groups, columns = N_training_list, index= sparsity_prob_list)
-      df_mean_groups.to_csv("synthetic/mean_groups.csv")
+      df_mean_groups.to_csv("results_synthetic/mean_groups.csv")
       df_std_groups = pd.DataFrame(std_score_groups, columns = N_training_list, index= sparsity_prob_list)
-      df_std_groups.to_csv("synthetic/std_groups.csv")
+      df_std_groups.to_csv("results_synthetic/std_groups.csv")
  
       df_mean_inedge = pd.DataFrame(mean_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
-      df_mean_inedge.to_csv("synthetic/mean_inedge.csv")
+      df_mean_inedge.to_csv("results_synthetic/mean_inedge.csv")
       df_std_inedge = pd.DataFrame(std_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
-      df_std_inedge.to_csv("synthetic/std_inedge.csv")
+      df_std_inedge.to_csv("results_synthetic/std_inedge.csv")
 
       scm_model.save()
  

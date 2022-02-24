@@ -16,9 +16,6 @@ class PCS_graph:
         self.n_nodes = len(prob_functions)
         self.list_prob_functions = prob_functions
         self.gdict = {}
-        #for v in range(self.n_nodes):
-            #self.gdict[v] = set(list(range(self.n_nodes)))
-            #self.gdict[v].discard(v)
         self.edges = None
         self.training_weights = None
         self.val_weights = None
@@ -87,11 +84,8 @@ class PCS_graph:
         
         for x in range(data.shape[0]):
             start = perf_counter()
-            #print(self.list_prob_functions[175](data[x]))
             prob = [f(data[x]) for f in self.list_prob_functions]
-            #print(prob[175])
             prob_matrix = np.vstack(prob)
-            #print(prob_matrix)
             #print(prob_matrix.shape)
             edges *= PCS_graph.check_PCS_condition(self.n_nodes, prob_matrix, labels[x])
             duration =  (perf_counter() - start)

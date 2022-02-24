@@ -14,7 +14,7 @@ from time import perf_counter
 class SCM:
     list_prob_functions = []
 
-    def __init__(self, name, n_classes,  list_prob_functions, group_members = [], naive = False, n_samples =1000):
+    def __init__(self, name, n_classes,  list_prob_functions, group_members = [], naive = False, n_samples =1):
         self.name = name
         self.n_classes = n_classes
         self.n_samples = n_samples
@@ -218,18 +218,15 @@ class SCM:
             predictions[x] = np.transpose(d_predictions)
 
             duration =  (perf_counter() - start)
-            if x==1: print("time to estimate naive error for datapoint ", x, " : ", duration, "s")
+            if x==0: print("time to estimate naive error for datapoint ", x, " : ", duration, "s")
         
-        # for handling missing values:
         loss = np.not_equal(predictions, labels)
-        #loss[labels == -999] = False
         #set error to nan if no data
         error_naive = np.mean(loss, 0, where=labels != -999)
         print('done estimating naive error')
 
         #sample counterfactual error
         error_cf_list = np.empty((self.n_experts, self.n_experts))
-        #no_label_vertex_set=set()
         print('estimating gumbel cscm error')
         for obs_ind in range(self.n_experts):
           start = perf_counter()
@@ -245,7 +242,6 @@ class SCM:
                 #compute error of the model given this observed expert
                 true_labels = labels[obs_label_index]
                 loss = np.not_equal(cf_predictions, true_labels)
-                #loss[true_labels == -999] = False
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", category=RuntimeWarning)
                     error_cf_list[obs_ind]=np.mean(loss, 0, where= true_labels != -999)
@@ -263,7 +259,6 @@ class SCM:
 
         # return difference in error from sampling naively to counterfactually
         # error_diff_list[obs_ind][pred_ind] = error diff. (0/1-loss) of the counterfactual prediction of pred_ind's label given obs_ind's label to the naive prediction
-        #return (np.vstack([ error - error_naive for error in error_cf_list]), no_label_vertex_set)
         return error_cf_list - error_naive
 
     def fit(self, data, labels, val_ratio=0.0, max_rounds=5):
@@ -271,7 +266,7 @@ class SCM:
 
         # Uncomment for validation
         val_size = math.ceil(val_ratio * data.shape[0])
-        print("Validation data size for greedy alg.: ", val_size)
+        #print("Validation data size for greedy alg.: ", val_size)
         val_data, data = np.vsplit(data, [val_size])
         val_labels, labels = np.vsplit(labels, [val_size])
         #print(val_labels)
@@ -283,8 +278,6 @@ class SCM:
         duration =  (perf_counter() - start)
         print("time to resolve edges: ", duration, "s")
 
-        #train_error_diff_list, train_no_label_vertex_set = self.get_error_diff_list(data,labels)
-        #val_error_diff_list, val_no_label_vertex_set = self.get_error_diff_list(val_data,val_labels)
         expert_list = self.graph.get_nodes_with_edges()
         best_partition = []
         if len(expert_list)>0:

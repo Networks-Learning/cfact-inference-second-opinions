@@ -9,9 +9,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from mpl_toolkits.axes_grid1 import make_axes_locatable 
 
 np.set_printoptions(precision=3)
-path = "data/final_98/"
-#path = "data/results_seed3993/"
-#path = "data/results_seed42_140/"
+path = "results_real/"
 
 def plot_confusion_matrix(eval_matrix, model_name):
     fig, ax = plt.subplots()

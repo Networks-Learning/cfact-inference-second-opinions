@@ -3,7 +3,8 @@ git/
 scm-env/
 data/
 features/
-synthetic/
+results_synthetic/
+results_real/
 #pictures
 *.png
 #graphs

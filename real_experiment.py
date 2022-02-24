@@ -84,14 +84,14 @@ class RealExperiment:
         print(test_predict)
 
     def get_eval_matrix(self, data, labels, model_name="trained"):
-        print("Evaluating Gumbel-Max SI-SCM")
+        print("Evaluating Gumbel-Max SI-SCM "+model_name)
         model = self.scm_model
         if model_name=="naive":
             model = self.scm_naive
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
         eval_matrix = np.zeros((total_predictions, 17))
-        print(eval_matrix.shape)
+        #print(eval_matrix.shape)
         current_ind = 0
         for obs_exp in range(self.n_experts):
             obs_group = self.scm_model.get_group_index(obs_exp)
@@ -110,7 +110,7 @@ class RealExperiment:
                     current_ind +=1
 
         df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"] + ['proba_' + str(i) for i in range(10)])
-        df_eval_matrix.to_csv("data/evaluation_results_"+model_name+".csv", index=False)
+        df_eval_matrix.to_csv("results_real/evaluation_results_"+model_name+".csv", index=False)
  
         print(model_name)
         print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
@@ -164,7 +164,7 @@ class RealExperiment:
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
         eval_matrix = np.zeros((total_predictions, 7))
-        print(eval_matrix.shape)
+        #print(eval_matrix.shape)
         current_ind = 0
         for exp in range(self.n_experts):
             exp_group = self.scm_model.get_group_index(exp)
@@ -190,106 +190,18 @@ class RealExperiment:
                         current_ind +=1
 
         df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
-        df_eval_matrix.to_csv("data/evaluation_results_nb_baseline.csv", index=False)
+        df_eval_matrix.to_csv("results_real/evaluation_results_nb_baseline.csv", index=False)
         
         print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
         print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
         print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
        
-  
-    """
-    def fit_logreg_baseline(self,expert_list, data, labels):
-      #proba_func_list = []
-      for expert in expert_list:
-        X_train = data[labels[:, expert]!=-999]
-        y_train = labels[labels[:,expert]!=-999]
-
-        n_labels_per_row = np.sum(y_train!=-999, axis=1)-1
-        total_training_points = np.sum( n_labels_per_row )
-        enc_X_train = np.zeros((total_training_points, X_train.shape[1]), dtype=float)
-        enc_X_train_obs = np.full((total_training_points, self.n_experts), 0, dtype=int)
-        #enc_X_train_obs = np.full((total_training_points, self.n_experts), 10, dtype=int)
-        enc_y_train = np.zeros((total_training_points), dtype=float)
-        current_ind = 0
-        for obs_exp in range(self.n_experts):
-            if obs_exp != expert:
-                has_data = y_train[:,obs_exp]!=-999
-                for i,x in enumerate(X_train[has_data]):
-                    #enc = np.full(self.n_experts,10)
-                    enc = np.full(self.n_experts,0)
-                    enc[obs_exp] = y_train[has_data][i,obs_exp]+1
-                    #enc_X_train[current_ind] = np.concatenate((x,enc.astype(float)), axis=None)
-                    enc_X_train[current_ind] = x
-                    enc_X_train_obs[current_ind] = enc.astype(int)
-                    enc_y_train[current_ind] = y_train[has_data][i,expert]
-                    current_ind +=1
-        
-        X_train = np.hstack([enc_X_train, enc_X_train_obs])
-        #self.minmaxsc_models.append(MinMaxScaler())
-        #X_train = self.minmaxsc_models[expert].fit_transform(X_train)
-        y_train = enc_y_train
-
-        #lr = LogisticRegression(random_state=33, max_iter=2000, class_weight='balanced', penalty='elasticnet', solver='saga', l1_ratio= 1.0)
-        lr = LogisticRegression(random_state=33, max_iter=1000, class_weight='balanced')
-
-        lr.fit(X_train, y_train)
-        self.logreg_baseline.append(lr)
- 
-    def get_eval_matrix_logreg_baseline(self, data, labels):
-        
-        n_labels_per_row = np.sum(labels!=-999, axis=1)
-        total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
-        eval_matrix = np.zeros((total_predictions, 7))
-        print(eval_matrix.shape)
-        current_ind = 0
-        for exp in range(self.n_experts):
-            exp_group = self.scm_model.get_group_index(exp)
-            has_data = labels[:,exp]!=-999
-            model = self.logreg_baseline[exp]
-            data_indices = np.arange(data.shape[0], dtype=int)[has_data]
-            for x in data_indices:
-                has_labels = labels[x]!=-999
-                has_labels[exp] = False
-                obs_indices = np.arange(self.n_experts, dtype=int)[has_labels]
-                for obs_exp in obs_indices:
-                        same_group = self.scm_model.get_group_index(obs_exp) == exp_group
-                        has_data = labels[:,obs_exp]!=-999
-                        feat_enc = np.full(self.n_experts, 0)
-                        #feat_enc = np.full(self.n_experts, 10)
-                        feat_enc[obs_exp] = labels[x,obs_exp]+1
-                        X = np.expand_dims(np.hstack([data[x],feat_enc]),axis=0)
-                        #X = self.minmaxsc_models[exp].transform(X)
-                        prediction = model.predict(X)
-                        eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction[0], same_group ], dtype = int)
-                        current_ind +=1
-
-        df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
-        df_eval_matrix.to_csv("data/evaluation_results_logreg_baseline.csv", index=False)
-        
-        print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
-        print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
-        print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
-        
-        print("Accuracy per expert: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,2]==exp) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        print("Accuracy per expert in same group: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-
-        print("Accuracy diff per expert in same group: ")
-        acc=np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,4]!=eval_matrix[:,3]) & (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-    """
-
     def get_eval_matrix_base_model(self, data, labels):
+        print("Evaluating GNB Base model")
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row)
         eval_matrix = np.zeros((total_predictions, 7))
-        print(eval_matrix.shape)
+        #print(eval_matrix.shape)
         current_ind = 0
         for exp in range(self.n_experts):
             has_data = labels[:,exp]!=-999
@@ -300,13 +212,9 @@ class RealExperiment:
                 current_ind +=1
 
         df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
-        df_eval_matrix.to_csv("data/evaluation_results_base_model.csv", index=False)
+        df_eval_matrix.to_csv("results_real/evaluation_results_base_model.csv", index=False)
 
         print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
-        print("Accuracy per expert: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,2]==exp) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
 
 
 
