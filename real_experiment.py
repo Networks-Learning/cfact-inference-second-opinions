@@ -123,9 +123,6 @@ class RealExperiment:
         X_train = data[labels[:, expert]!=-999]
         y_train_old = labels[labels[:,expert]!=-999][:,expert]
         y_train = labels[labels[:,expert]!=-999]
-        if expert==94: 
-            print(np.unique(y_train))
-            print(np.unique(y_train_old))
 
         n_labels_per_row = np.sum(y_train!=-999, axis=1)-1
         total_training_points = np.sum( n_labels_per_row )
