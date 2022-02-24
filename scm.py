@@ -14,7 +14,7 @@ from time import perf_counter
 class SCM:
     list_prob_functions = []
 
-    def __init__(self, name, n_classes,  list_prob_functions, group_members = [], naive = False, n_samples =1):
+    def __init__(self, name, n_classes,  list_prob_functions, group_members = [], naive = False, n_samples =1000):
         self.name = name
         self.n_classes = n_classes
         self.n_samples = n_samples
