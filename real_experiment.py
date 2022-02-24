@@ -30,12 +30,9 @@ class RealExperiment:
         self.scm_model = None
     
     def add_experts(self, expert_list, data, labels):
-        n_experts = self.n_experts
         new_proba_func_list = self.fit_proba_models(expert_list, data, labels)
         self.list_proba_func.extend(new_proba_func_list)
         self.n_experts = len(self.list_proba_func)
-        #return index of added experts
-        return range(n_experts, n_experts+len(expert_list))
 
     def get_proba(self, x, clf):
         classes_not_trained = set(clf.classes_).symmetric_difference(range(self.n_classes))
@@ -87,12 +84,11 @@ class RealExperiment:
         print(test_predict)
 
     def get_eval_matrix(self, data, labels, model_name="trained"):
+        print("Evaluating Gumbel-Max SI-SCM")
         model = self.scm_model
         if model_name=="naive":
             model = self.scm_naive
-        print(np.sum(labels!=-999, axis=1))
         n_labels_per_row = np.sum(labels!=-999, axis=1)
-        print(n_labels_per_row)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
         eval_matrix = np.zeros((total_predictions, 17))
         print(eval_matrix.shape)
@@ -120,41 +116,23 @@ class RealExperiment:
         print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
         print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
         print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
-        print("Accuracy per expert: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,2]==exp) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        print("Accuracy per expert for group obs: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,2]==exp) & (eval_matrix[:,6]==1)) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-
-        print("Accuracy diff per expert for group obs: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,4]!=eval_matrix[:,3]) & (eval_matrix[:,2]==exp) & (eval_matrix[:,6]==1)) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        print("Accuracy per expert for non group obs: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,2]==exp) & (eval_matrix[:,6]==0)) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        #print("Accuracy per obs expert for group prediction: ")
-        #print(np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,1]==exp) & (eval_matrix[:,6]==1)) for exp in range(self.n_experts)]))
-  
-
-
+        
     def fit_nb_baseline(self,expert_list, data, labels):
       #proba_func_list = []
       for expert in expert_list:
         X_train = data[labels[:, expert]!=-999]
+        y_train_old = labels[labels[:,expert]!=-999][:,expert]
         y_train = labels[labels[:,expert]!=-999]
+        if expert==94: 
+            print(np.unique(y_train))
+            print(np.unique(y_train_old))
 
         n_labels_per_row = np.sum(y_train!=-999, axis=1)-1
         total_training_points = np.sum( n_labels_per_row )
-        #enc_X_train = np.zeros((total_training_points, X_train.shape[1]+self.n_experts), dtype=float)
         enc_X_train = np.zeros((total_training_points, X_train.shape[1]), dtype=float)
         #enc_X_train_obs = np.full((total_training_points, self.n_experts), 0, dtype=int)
         enc_X_train_obs = np.full((total_training_points, self.n_experts), 10, dtype=int)
-        enc_y_train = np.zeros((total_training_points), dtype=float)
+        enc_y_train = np.zeros((total_training_points), dtype=int)
         current_ind = 0
         for obs_exp in range(self.n_experts):
             if obs_exp != expert:
@@ -163,7 +141,6 @@ class RealExperiment:
                     enc = np.full(self.n_experts,10)
                     #enc = np.full(self.n_experts,0)
                     enc[obs_exp] = y_train[has_data][i,obs_exp]#+1
-                    #enc_X_train[current_ind] = np.concatenate((x,enc.astype(float)), axis=None)
                     enc_X_train[current_ind] = x
                     enc_X_train_obs[current_ind] = enc.astype(int)
                     enc_y_train[current_ind] = y_train[has_data][i,expert]
@@ -178,10 +155,12 @@ class RealExperiment:
 
         gnb.fit(X_train, y_train)
         catnb.fit(X_train_cat, y_train)
-        self.nb_baseline.append((gnb,catnb))
+        #self.nb_baseline.append((gnb,catnb))
+        self.nb_baseline.append((self.proba_models[expert],catnb))
  
     def get_eval_matrix_nb_baseline(self, data, labels):
         
+        print("Evaluating GNB+CNB Baseline")
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row * (n_labels_per_row-1))
         eval_matrix = np.zeros((total_predictions, 7))
@@ -205,8 +184,9 @@ class RealExperiment:
                         X = np.expand_dims(data[x],axis=0)
                         X_cat = np.expand_dims(feat_enc,axis=0)
                         proba = gnb.predict_proba(X) * catnb.predict_proba(X_cat) / gnb.class_prior_
-                        prediction = np.argmax(proba, axis=1)
-                        eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction[0], same_group ], dtype = int)
+                        prediction = np.argmax(proba)
+                        eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction, same_group ], dtype = int)
+                        #eval_matrix[current_ind] = np.array([x,obs_exp,exp,labels[x,obs_exp], labels[x,exp], prediction, 0 ], dtype = int)
                         current_ind +=1
 
         df_eval_matrix = pd.DataFrame(eval_matrix, columns = ["data_index", "obs_expert", "pred_expert", "obs_label","expert_label", "prediction", "is_same_group"])
@@ -215,24 +195,9 @@ class RealExperiment:
         print("Accuracy same: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]==eval_matrix[:,3]))
         print("Accuracy diff: ",np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,4]!=eval_matrix[:,3]))
         print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
-        
-        print("Accuracy per expert: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,2]==exp) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        print("Accuracy per expert in same group: ")
-        acc = np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-
-        print("Accuracy diff per expert in same group: ")
-        acc=np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,4]!=eval_matrix[:,3]) & (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
-        print(acc)
-        print(np.nanmean(acc))
-        #print("Accuracy per obs expert:")
-        #print(np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= eval_matrix[:,1]==exp) for exp in range(self.n_experts)]))
+       
   
-
+    """
     def fit_logreg_baseline(self,expert_list, data, labels):
       #proba_func_list = []
       for expert in expert_list:
@@ -318,7 +283,8 @@ class RealExperiment:
         acc=np.array([np.mean(eval_matrix[:,4]==eval_matrix[:,5], where= (eval_matrix[:,4]!=eval_matrix[:,3]) & (eval_matrix[:,2]==exp) &(eval_matrix[:,6]==1) ) for exp in range(self.n_experts)])
         print(acc)
         print(np.nanmean(acc))
-  
+    """
+
     def get_eval_matrix_base_model(self, data, labels):
         n_labels_per_row = np.sum(labels!=-999, axis=1)
         total_predictions = np.sum( n_labels_per_row)
@@ -379,7 +345,8 @@ def main():
     data_test = scaler.transform(data_test)
 
     exp.add_experts(range(n_experts), data, labels)
-    exp.evaluate_marginal_estimators(data_test, labels_test)
+    #exp.evaluate_marginal_estimators(data_test, labels_test)
+    print("Evaluating GNB")
     exp.get_eval_matrix_base_model( data_test, labels_test)
     exp.update_model(data, labels)
 
@@ -387,7 +354,9 @@ def main():
     data_test = data_test[row_idx_test]
     labels_test = labels_test[row_idx_test]
     print("Test data shape: ", data_test.shape)
+    print("Evaluating Gumbel-Max SI-SCM")
     exp.get_eval_matrix( data_test, labels_test)
+    print("Evaluating M(H)")
     exp.get_eval_matrix( data_test, labels_test, model_name="naive")
 
     exp.fit_nb_baseline( range(n_experts),data, labels)

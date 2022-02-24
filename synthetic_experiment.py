@@ -85,7 +85,7 @@ class SyntheticExperiment:
                 rate_inedges[t,s,n] = self.scm_real_model.analyze_PCS_graph( data_training, label_training)
                 if rate_inedges[t,s,n]==1.0: continue
                 #trained SCM
-                scm_model = SCM("Trained", self.n_classes, self.scm_real_model.get_prob_function())
+                scm_model = SCM("Trained", self.n_classes, self.scm_real_model.get_prob_function(),n_samples=500)
                 scm_model.fit( data_training, label_training)
                 
                 #naive SCM
@@ -150,13 +150,8 @@ class SyntheticExperiment:
       df_std_inedge = pd.DataFrame(std_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
       df_std_inedge.to_csv("synthetic/std_inedge.csv")
 
-      plot(sparsity_prob_list, N_training_list, mean_score_real, mean_score_trained, mean_score_naive, std_score_real, std_score_trained, std_score_naive)
-      plot_group_comparison(sparsity_prob_list, N_training_list, mean_score_groups, std_score_groups)
-      plot_rate_inedge(sparsity_prob_list, N_training_list, mean_rate_inedge, std_rate_inedge)
       scm_model.save()
  
-
-
 
 def main():
     n_classes = 5
@@ -167,9 +162,9 @@ def main():
     seed = 44 
     exp = SyntheticExperiment(n_classes, n_features, n_groups, size_max, size_min, seed)
     N_test=1000
-    T= 1
-    N_training_list = [10, 20, 70, 100, 200, 400]#[5,20,60,90,120] 
-    sparsity_prob_list = [0.1, 0.3, 0.6, 0.8, 0.95]#list(np.linspace(0, 1, num=5, endpoint=False))
+    T= 5
+    N_training_list = [10, 20, 50, 75, 100, 150, 200, 300, 400]
+    sparsity_prob_list = [0.1, 0.3, 0.6, 0.8, 0.95]
     exp.run_experiment(T, N_test, sparsity_prob_list, N_training_list)
 
 if __name__ == "__main__":

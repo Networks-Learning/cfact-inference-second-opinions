@@ -54,59 +54,6 @@ class PCS_graph:
         #print("Validation weights")
         #print(self.val_weights)
 
-    """
-    def fit(self,data, labels):
-        #function for checking PCS condition given the data and marginal prob. functions
-
-        for i in range(self.n_nodes):
-            has_data = labels[labels[:,i] != -999] != -999
-            no_data = np.argwhere(np.sum(has_data, axis=0) ==0)
-            for j in list(no_data.flatten()):
-                self.gdict[i].discard(j)
-        
-        for x in range(data.shape[0]):
-            prob = [f(data[x,:]) for f in self.list_prob_functions]
-            prob_matrix = np.asarray(prob)
-            for i in range(self.n_nodes):
-                neigh = self.gdict[i].copy()
-                for j in neigh:
-                    #check that PCS condition is satisfied
-                    ci= labels[x][i]
-                    cj= labels[x][j]
-                    if ci != -999 and cj != -999:
-                        r_ci = prob_matrix[j,ci]/ prob_matrix[i,ci]
-                        r_cj = prob_matrix[j,cj]/ prob_matrix[i,cj]
-                        if r_ci >= r_cj and ci!=cj:
-                            #otherwise remove edge
-                            self.gdict[i].discard(j)
-                            self.gdict[j].discard(i)
-
-
-       # print(self.gdict)
-    """
-    """
-    #@numba.njit(parallel=True)
-    def check_PCS_condition(n_nodes,  prob_matrix, labels):
-        edges = np.full((n_nodes, n_nodes), 1)
-        for i in range(n_nodes):
-            for j in range(n_nodes):
-                #check that PCS condition is satisfied
-                ci= labels[i]
-                cj= labels[j]
-                if ci != -999 and cj != -999:
-                    #original ratio definition
-                    #r_ci = prob_matrix[j,ci]/ prob_matrix[i,ci]
-                    #r_cj = prob_matrix[j,cj]/ prob_matrix[i,cj]
-                    #to avoid division by 0, rearranged terms
-                    m_ci = prob_matrix[j,ci] * prob_matrix[i,cj]
-                    m_cj = prob_matrix[j,cj] * prob_matrix[i,ci]
-                    if m_ci >= m_cj and ci!=cj:
-                        #otherwise remove edge
-                        edges[i,j]*=0
-                        edges[j,i]*=0
-        return edges
-    """
-
     def check_PCS_condition(n_nodes, prob_matrix, labels):
         edges = np.full((n_nodes, n_nodes), 1)
         for i in range(n_nodes):
@@ -150,20 +97,6 @@ class PCS_graph:
             duration =  (perf_counter() - start)
             if x==1: print("time to check PCS for datapoint 1 : ", duration, "s")
 
-        """
-            for i in range(self.n_nodes):
-                for j in np.argwhere(edges[i,:] !=0).flatten():
-                    #check that PCS condition is satisfied
-                    ci= labels[x][i]
-                    cj= labels[x][j]
-                    if ci != -999 and cj != -999:
-                        r_ci = prob_matrix[j,ci]/ prob_matrix[i,ci]
-                        r_cj = prob_matrix[j,cj]/ prob_matrix[i,cj]
-                        if r_ci >= r_cj and ci!=cj:
-                            #otherwise remove edge
-                            edges[i,j]=0
-                            edges[j,i]=0
-        """
         print("number of edges after PCS: ")
         print(np.sum(edges))
 
@@ -187,8 +120,6 @@ class PCS_graph:
         partition = []
 
         #greedy algorithm for clique partition
-        #partition.extend([{v} for v in no_label_vertex_set])
-        #remaining_nodes = self.graph.get_nodes().difference(no_label_vertex_set)
         remaining_nodes = self.get_nodes()
         while len(remaining_nodes):
             v = self.rng.choice(list(remaining_nodes))
@@ -200,12 +131,10 @@ class PCS_graph:
             errDiff = dict.fromkeys(list(candidates), 0)
             while len(candidates) != 0:
                 errDiff = {h: errDiff[h] + self.training_weights[h, argmin] for h in candidates}
-                #errDiff = self.get_errDiff(candidates, errDiff, argmin)
                 #print(errDiff)
-                #TO DO: should we stop if the error increases compared to naive ???
                 if all(val>0 for val in errDiff.values()): break
                 # add to argmin to subgroup
-                argmin = min(errDiff, key = lambda h: errDiff[h])#/(len(subgroup)+1))
+                argmin = min(errDiff, key = lambda h: errDiff[h])
                 subgroup.add(argmin)
                 # update candidates and errDiff by removing non neighbors of argmin
                 neighbors = self.get_neighbors(argmin)

@@ -13,12 +13,11 @@ from time import perf_counter
 
 class SCM:
     list_prob_functions = []
-    n_samples = 10#1000
-    n_failed_r_sampling = 0
 
-    def __init__(self, name, n_classes, list_prob_functions, group_members = [], naive = False):
+    def __init__(self, name, n_classes,  list_prob_functions, group_members = [], naive = False, n_samples =1000):
         self.name = name
         self.n_classes = n_classes
+        self.n_samples = n_samples
         #experts' marginal probability functions
         self.list_prob_functions = list_prob_functions
         self.n_experts = len(list_prob_functions)
@@ -79,7 +78,8 @@ class SCM:
         return group_prob
 
     #sample group prediction from prior
-    def sample_group_predictions(self, group_prob, times=n_samples, return_prob=False):
+    def sample_group_predictions(self, group_prob, times=..., return_prob=False):
+        if times is ...: times = self.n_samples
         
         def count(pred_ind):
             val, count = np.unique(pred_ind, return_counts=True)
@@ -134,7 +134,8 @@ class SCM:
     
     #sample group prediction from posterior
     #note g_ind is the observed individuals index in the group not overall
-    def sample_counterfactual_predictions(self, group_prob, g_ind, label, times=n_samples, return_prob=False):
+    def sample_counterfactual_predictions(self, group_prob, g_ind, label, times=..., return_prob=False):
+        if times is ...: times = self.n_samples
         
         def count(pred_ind):
             val, count = np.unique(pred_ind, return_counts=True)
@@ -165,7 +166,8 @@ class SCM:
         predictions[group] = self.sample_counterfactual_predictions(prob[group], i, label, times)
         return predictions
 
-    def predict(self,data, times =n_samples):
+    def predict(self,data, times =...):
+        if times is ...: times = self.n_samples
         labels = []
         for datapoint in data:
             list_group_predictions = self.predict_by_groups(datapoint, times)
@@ -175,7 +177,9 @@ class SCM:
             labels.append(np.asarray(predictions))
         return np.asarray(labels)
     
-    def predict_counterfactuals(self, data, obs_inds, obs_labels, times = n_samples):
+    def predict_counterfactuals(self, data, obs_inds, obs_labels, times = ...):
+        if times is ...: times = self.n_samples
+
         labels = np.empty((data.shape[0], self.n_experts))
         for x in range(data.shape[0]):
             list_group_predictions = self.predict_counterfactuals_by_groups(data[x,:], obs_inds[x], obs_labels[x],times)
@@ -186,7 +190,8 @@ class SCM:
         return labels
 
 
-    def predict_cfc_proba(self, data, obs_inds, obs_labels, times = n_samples):
+    def predict_cfc_proba(self, data, obs_inds, obs_labels, times = ...):
+        if times is ...: times = self.n_samples
         proba = np.empty((data.shape[0], self.n_experts, self.n_classes), dtype=float)
         for x in range(data.shape[0]):
             prob = self.get_group_prob(data[x,:], self.group_members_sorted)
@@ -198,68 +203,7 @@ class SCM:
                 predictions[k]=list_group_predictions[g][i]
             proba[x] = predictions
         return proba
-    """
-    #samples naive predictions and counterfactual predictions for the data, returns avg. diff in error for each observed expert
-    def get_error_diff_list(self, expert_list, data, labels):
-        #sample naive(i.e., marginal) error
-        likelihood = np.empty_like(labels, dtype=float)
-        print('estimating naive error')
-        labels[labels==-999]=-1
-        for x in range(data.shape[0]):
-            start = perf_counter()
-        
-            all_prob = np.vstack(self.get_prob(data[x]))
-            sample_vec = np.vectorize((lambda d, labels: np.log(self.sample_group_predictions(d, return_prob=True)[:, labels])), signature='(m,n),()->(m)')
-            d_likelihood = sample_vec(all_prob, labels[x])
-
-            likelihood[x] = np.transpose(d_likelihood)
-            likelihood[x][labels[x]==-1] = np.nan 
-
-            duration =  (perf_counter() - start)
-            if x==1: print("time to estimate naive error for datapoint ", x, " : ", duration, "s")
-        
-        #loss[labels == -999] = False
-        #set error to nan if no data
-        likelihood_naive = np.sum(likelihood, axis=0, where=labels != -999)
-        print(likelihood_naive)
-        print('done estimating naive error')
-
-        #sample counterfactual error
-        likelihood_cf_list = np.empty((self.n_experts, self.n_experts))
-        #no_label_vertex_set=set()
-        print('estimating gumbel cscm error')
-        for obs_ind in range(self.n_experts):
-          start = perf_counter()
-          if obs_ind in expert_list:
-            #sample counterfactual labels given observed expert obs_ind
-            #note: we pretend that all experts are one PCS group for the sampling
-            cf_sample_given_obs = np.vectorize(np.log(lambda d, obs_label, labels: self.sample_counterfactual_predictions(np.vstack(self.get_prob(d)), obs_ind, obs_label)[np.arange(self.n_experts), labels]), signature= '(m),(),(k,l)->(n)')
-            obs_labels = labels[:,obs_ind]
-            obs_label_index = obs_labels != -999
-            obs_labels = obs_labels[obs_label_index]
-            if np.size(obs_labels) != 0:
-                cf_likelihood = cf_sample_given_obs(data[obs_label_index], obs_labels, labels)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", category=RuntimeWarning)
-                    likelihood_cf_list[obs_ind]=np.sum(cf_likelihood, axis=0, where= true_labels != -999)
-            else:
-                #set error to nan if no data
-                likelihood_cf_list[obs_ind] = np.full((self.n_experts), np.nan)
-          else:
-                #set error to nan if no data
-                likelihood_cf_list[obs_ind] = np.full((self.n_experts), np.nan)
-          duration =  (perf_counter() - start)
-          if obs_ind % 100 ==0 : print("time to estimate cf error for obs. expert ", obs_ind, " : ", duration, "s")
-        labels[labels==-1]=-999
-
-        print('done estimating gumbel cscm error')
-
-
-        # return difference in error from sampling naively to counterfactually
-        # error_diff_list[obs_ind][pred_ind] = error diff. (0/1-loss) of the counterfactual prediction of pred_ind's label given obs_ind's label to the naive prediction
-        #return (np.vstack([ error - error_naive for error in error_cf_list]), no_label_vertex_set)
-        return likelihood_naive - likelihood_cf_list  
-    """ 
+    
     #samples naive predictions and counterfactual predictions for the data, returns avg. diff in error for each observed expert
     def get_error_diff_list(self, expert_list, data, labels):
         #sample naive(i.e., marginal) error
@@ -395,34 +339,8 @@ class SCM:
 
         loss_matrix = np.not_equal(test_predictions, test_labels)
         return np.mean(loss_matrix)
-    """
-
-    def score_counterfactuals_rand(self, data, labels, test_inds, test_labels):
-        naive_counter = 0
-        cf_non_same_right = 0
-        cf_non_same_wrong = 0
-        cf_same_wrong = 0
-        test_pred_proba = np.zeros((data.shape[0]))
-        for x in range(data.shape[0]):
-            prob = self.get_group_prob(data[x,:], self.group_members_sorted)
-            group, i = self.index_dict[test_inds[x]]
-            obs_group = [j for j in self.group_members_sorted[group] if j!=test_inds[x] and labels[x,j]!=-999]
-            group_size = len(obs_group)
-            if group_size ==0:
-                test_pred_proba[x] = self.sample_group_predictions(prob[group], return_prob=True)[i][labels[x, test_inds[x]]]
-            else:
-                obs_ind = self.rng.choice(a=obs_group)
-                group_obs, obs_ind_group = self.index_dict[obs_ind]
-                if group != group_obs: "something is wrong"
-                group_predictions = self.sample_counterfactual_predictions(prob[group], obs_ind_group, labels[x, obs_ind], return_prob=True)
-                test_pred_proba[x] = group_predictions[i][labels[x, test_inds[x]]]
-
-        return np.sum(np.log(test_pred_proba))
-    """
 
     def save(self):
         self.graph.save(self.name, self.group_members)
 
-    #def print_number_failed_attemps(self):
-    #    print("Failed rejection sampling attemps: ", self.n_failed_r_sampling)
 
