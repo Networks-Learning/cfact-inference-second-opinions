@@ -1,130 +1,88 @@
 #!/usr/bin/env python
 
-#feature extraction code source: https://github.com/rnoxy/cifar10-cnn
-
 import numpy as np
-#import tensorflow as tf
-import tensorflow.compat.v1 as tf
-from keras.layers import Input, Dense, AveragePooling2D, GlobalAveragePooling2D
-from keras import backend as K
+import pandas as pd
+import networkx as nx
+from sklearn.model_selection import train_test_split
+from networkx.algorithms.approximation import max_clique
 
-tf.disable_v2_behavior()
+n_nodes = 2571
 
-from keras.datasets import cifar10
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
+df = pd.read_csv('data/cifar10_feat+labels.csv').fillna(-999)
+data_all = df.filter(like='feature', axis=1).to_numpy()
+labels_all = df.filter(like='chosen_label', axis=1).to_numpy(dtype = 'int')
 
-n_testing = X_test.shape[0]
+def has_disagreement(labels):
+            val, count = np.unique(labels, return_counts=True)
+            count = count[val!=-999]
+            return len(count)>1
 
-y_test  = y_test.flatten()
+def ratio_disagreement(labels, exp):
+            if labels[exp]==-999: return np.nan
+            val, count = np.unique(labels, return_counts=True)
+            count = count[val!=-999]
+            val = val[val!=-999]
+            return np.sum(count[val!=labels[exp]])/float(np.sum(count)-1)
 
-print( X_test.shape, y_test.shape )
+vec_has_disagreement = np.vectorize(has_disagreement, signature='(n)->()')
+sampling_mask = vec_has_disagreement(labels_all)
+print("Number of resampled datapoints:", np.sum(sampling_mask))
+vec_ratio_disagreement = np.vectorize(lambda d: np.array([ratio_disagreement(d,exp) for exp in range(n_nodes)]), signature='(n)->(m)')
+ratio = np.nanmean(vec_ratio_disagreement(labels_all))
+print("CIFAR-10H -- Disagreement ratio ", ratio)
 
-from keras.models import Model
-from keras.applications.inception_v3 import InceptionV3
-from tensorflow.keras.applications.resnet50    import ResNet50
-from keras.applications.vgg16        import VGG16
-from keras.applications.vgg19        import VGG19
+print("Resampling data and expert to have higher disagreement ratio...")
 
-network_names = [ 'incv3', 'resnet50', 'vgg16', 'vgg19' ]
-print("Available networks = ", network_names)
-cnnid = int( input("Please choose the CNN network [0-{n}]: ".format(n=len(network_names)-1)) )
-selected_network = network_names[cnnid]
-print("Selected network: ", selected_network)
+data_all = data_all[sampling_mask]
+labels_all = labels_all[sampling_mask]
 
-input_shape = {
-    'incv3'   : (299,299,3),
-    'resnet50': (224,224,3),
-    'vgg16'   : (224,224,3),
-    'vgg19'   : (224,224,3)
-}[selected_network]
+print("Train test split")
+seed = {42,3993}
+data, data_test, labels, labels_test = train_test_split(data_all, labels_all, test_size=0.20, random_state=3993)
 
-def create_model_incv3():
-    tf_input = Input(shape=input_shape)
-    model = InceptionV3(input_tensor=tf_input, weights='imagenet', include_top=False)
-    output_pooled = AveragePooling2D((8, 8), strides=(8, 8))(model.output)
-    return Model(model.input, output_pooled)
+#choose random subset of experts with enough data points
+has_all_labels = [np.array_equal(np.unique(labels[:,exp]),np.array([-999,0,1,2,3,4,5,6,7,8,9])) for exp in range(n_nodes)]
+experts = (np.sum(labels!=-999, axis=0) > 130) & (np.sum(labels_test!=-999, axis=0) > 20) & (np.array(has_all_labels,dtype=bool))
+print("# experts with data after resampling: ", np.sum(experts))
+print("Experts ID:")
+print(np.arange(2571,dtype=int)[experts])
 
-def create_model_resnet50():
-    tf_input = Input(shape=input_shape)
-    return ResNet50(input_tensor=tf_input, include_top=False)
+labels = labels[:,experts]
+labels_test = labels_test[:,experts]
+row_idx = np.sum(labels!=-999, axis=1)>1
+data = data[row_idx]
+labels = labels[row_idx]
+experts = [np.array_equal(np.unique(labels[:,exp]),np.array([-999,0,1,2,3,4,5,6,7,8,9])) for exp in range(np.sum(experts))]
+if np.sum(experts) != 0: print("Note for some experts there is no label observations for some classes")
 
-def create_model_vgg16():
-    tf_input = Input(shape=input_shape)
-    model = VGG16(input_tensor=tf_input, include_top=False)
-    output_pooled = AveragePooling2D((7, 7))(model.output)
-    return Model(model.input, output_pooled )
+row_idx_test = np.sum(labels_test!=-999, axis=1)>1
+data_test = data_test[row_idx_test]
+labels_test = labels_test[row_idx_test]
 
-def create_model_vgg19():
-    tf_input = Input(shape=input_shape)
-    model = VGG19(input_tensor=tf_input, include_top=False)
-    output_pooled = AveragePooling2D((7, 7))(model.output)
-    return Model(model.input, output_pooled )
+print("Training Data Shape", data.shape)
+print("Test Data Shape", data.shape)
+has_disagreement = vec_has_disagreement(labels)
+print("Train -- Number of full agreement:", data.shape[0]-np.sum(has_disagreement))
+has_disagreement = vec_has_disagreement(labels_test)
+print("Test -- Number of full agreement:", data_test.shape[0]-np.sum(has_disagreement))
 
-create_model = {
-    'incv3'    : create_model_incv3,
-    'resnet50' : create_model_resnet50,
-    'vgg16'    : create_model_vgg16,
-    'vgg19'    : create_model_vgg19
-}[selected_network]
-
-# tensorflow placeholder for batch of images from CIFAR10 dataset
-batch_of_images_placeholder = tf.placeholder("uint8", (None, 32, 32, 3))
-
-batch_size = {
-    'incv3'    : 16,
-    'resnet50' : 16,
-    'vgg16'    : 16,
-    'vgg19'    : 16
-}[selected_network]
-
-# Inception default size is 299x299
-tf_resize_op = tf.image.resize_images(batch_of_images_placeholder, (input_shape[:2]), method=0)
+vec_ratio_disagreement = np.vectorize(lambda d: np.array([ratio_disagreement(d,exp) for exp in range(labels.shape[1])]), signature='(n)->(m)')
+ratio = np.nanmean(vec_ratio_disagreement(labels))
+print("Train -- Disagreement ratio ", ratio)
+ratio = np.nanmean(vec_ratio_disagreement(labels_test))
+print("Test -- Disagreement ratio ", ratio)
 
 
-# data generator for tensorflow session
-from keras.applications.inception_v3 import preprocess_input as incv3_preprocess_input
-from tensorflow.keras.applications.resnet50     import preprocess_input as resnet50_preprocess_input
-from keras.applications.vgg16        import preprocess_input as vgg16_preprocess_input
-from keras.applications.vgg19        import preprocess_input as vgg19_preprocess_input
+print("Saving data")
+df_data = pd.DataFrame(data)
+df_data.to_csv('data/data_training.csv', index=False)
+df_labels = pd.DataFrame(labels)
+df_labels.to_csv('data/labels_training.csv', index=False)
+#print(np.sum(labels!=-999, axis=0))
+#print(np.sum(labels!=-999, axis=1))
+df_data_test = pd.DataFrame(data_test)
+df_data_test.to_csv('data/data_test.csv', index=False)
+df_labels_test = pd.DataFrame(labels_test)
+df_labels_test.to_csv('data/labels_test.csv', index=False)
+#print(np.sum(labels_test!=-999, axis=1))
 
-preprocess_input = {
-    'incv3'   : incv3_preprocess_input,
-    'resnet50': resnet50_preprocess_input,
-    'vgg16'   : vgg16_preprocess_input,
-    'vgg19'   : vgg19_preprocess_input
-}[selected_network]
-
-def data_generator(sess,data,labels):
-    def generator():
-        start = 0
-        end = start + batch_size
-        n = data.shape[0]
-        while True:
-            batch_of_images_resized = sess.run(tf_resize_op, {batch_of_images_placeholder: data[start:end]})
-            batch_of_images__preprocessed = preprocess_input(batch_of_images_resized)
-            batch_of_labels = labels[start:end]
-            start += batch_size
-            end   += batch_size
-            if start >= n:
-                start = 0
-                end = batch_size
-            yield (batch_of_images__preprocessed, batch_of_labels)
-    return generator
-
-with tf.Session() as sess:
-    # setting tensorflow session to Keras
-    K.set_session(sess)
-    # setting phase to training
-    K.set_learning_phase(0)  # 0 - test,  1 - train
-
-    model = create_model()
-
-    data_test_gen = data_generator(sess, X_test, y_test)
-    ftrs_testing = model.predict_generator(data_test_gen(), n_testing/batch_size, verbose=1)
-
-    features_testing  = np.array( [ftrs_testing[i].flatten()  for i in range(n_testing )] )
-    print(features_testing.shape)
-
-    np.savez_compressed("features/CIFAR10_{}-keras_features.npz".format(selected_network), \
-                    features_testing=features_testing,   \
-                    labels_testing=y_test)
