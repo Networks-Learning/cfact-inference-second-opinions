@@ -2,7 +2,7 @@
 
 ## Install and download prerequisites
 
-Install required packages with pip install -r requirements.txt
+Install required packages with "pip install -r requirements.txt"
 
 ## Running the Experiment on Synthetic Data
 
