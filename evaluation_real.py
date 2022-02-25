@@ -12,12 +12,14 @@ np.set_printoptions(precision=3)
 path = "results_real/"
 
 def plot_confusion_matrix(eval_matrix, model_name):
-    w,h = get_fig_dim(width=2*487,fraction=0.4)
+    w,h = get_fig_dim(width=487,fraction=0.7)
     fig, ax = plt.subplots(figsize=(w,h))
     print("Confusion Matrix...",model_name)
     labels = ["airplane", "automobile", "bird", "cat", "deer", "dog","frog","horse","ship","truck"]
     #cm = confusion_matrix( eval_matrix[:,4], eval_matrix[:,5], labels= np.arange(10, dtype=int), normalize='true')
     ConfusionMatrixDisplay.from_predictions(eval_matrix[:,4], eval_matrix[:,5],normalize='true', display_labels=labels, values_format='.2f', xticks_rotation='vertical', cmap='YlGnBu', ax=ax, colorbar=False)
+    ax.set_xlabel("Model's Prediction of Expert's Label")
+    ax.set_ylabel("Expert's Label Prediction")
     fig.tight_layout()
     plt.savefig(path+"CM_"+model_name+".pdf")
     plt.show()
@@ -92,10 +94,10 @@ def print_overall_acc(trained, untrained, nb, gnb):
     nb_acc_g = np.mean(nb[:,4]==nb[:,5], where= nb[:,6]==1)
     nb_acc_ng = np.mean(nb[:,4]==nb[:,5], where= nb[:,6]==0)
 
-    gnb_acc = np.mean(gnb[:,4]==gnb[:,5])
+    #gnb_acc = np.mean(gnb[:,4]==gnb[:,5])
     
     print("Model\t: GM-SI-SCM \t GNB \t GNB+CNB")
-    print("Acc scenario 1\t:", trained_acc, untrained_acc, nb_acc, gnb_acc)
+    print("Acc scenario 1\t:", trained_acc, untrained_acc, nb_acc)
     print("Acc scenario 2\t:", trained_acc_g, untrained_acc_g, nb_acc_g)
     print("Acc scnario 3 \t:", trained_acc_ng, untrained_acc_ng, nb_acc_ng)
 
@@ -127,7 +129,7 @@ def main():
     plot_confusion_matrix(naive_results, "GNB")
     plot_confusion_matrix( nb_baseline_results, "GNB+CNB")
 
-    w,h = get_fig_dim(width=2*487,fraction=0.233)
+    w,h = get_fig_dim(width=487,fraction=0.4)
     fig, axes = plt.subplots(figsize=(w,h))
     im =plot_diff_acc_2D(siscm_results, naive_results, "GNB", n_experts,axes)
     axes.set(aspect=1)
@@ -154,7 +156,7 @@ def main():
     plt.show()
     
 
-    w, _ = get_fig_dim(width=2*487,fraction=0.28)
+    w, _ = get_fig_dim(width=487,fraction=0.48)
     fig, axes = plt.subplots(figsize=(w,h))
     axes.set(aspect=1)
     #plt.colorbar(im, location='right',shrink=0.7)
@@ -168,7 +170,7 @@ def main():
     plt.savefig(path+"compare_naivebayes_sc2.pdf")
     plt.show()
 ########### 
-    #w,h = get_fig_dim(width=487,fraction=0.5)
+    w,h = get_fig_dim(width=487,fraction=0.5)
     fig, axes = plt.subplots(figsize=(w,h))
     axes.set(aspect=1)
     divider = make_axes_locatable(axes)

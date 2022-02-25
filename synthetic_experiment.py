@@ -161,7 +161,7 @@ def main():
     size_min = 5
     seed = 44 
     exp = SyntheticExperiment(n_classes, n_features, n_groups, size_max, size_min, seed)
-    N_test=1000
+    N_test=100
     T= 5
     N_training_list = [10, 20, 50, 75, 100, 150, 200, 300, 400]
     sparsity_prob_list = [0.1, 0.3, 0.6, 0.8, 0.95]
