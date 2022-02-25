@@ -213,6 +213,11 @@ class RealExperiment:
 
         print("Accuracy : ",np.mean(eval_matrix[:,4]==eval_matrix[:,5]))
 
+    def save_groups(self):
+        groups = { i: g for i,g in enumerate(self.scm_model.group_members_sorted)}
+        groups = { i: g for i,g in enumerate(group)}
+        df_groups = pd.DataFrame.from_dict(groups, orient='index')
+        df_groups.to_csv('results_real/SI-SCM_groups.csv',index=False)
 
 
 def main():
@@ -230,7 +235,6 @@ def main():
     print("Labels shape: ", labels.shape)
        
     n_experts = labels.shape[1]
-
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
 
@@ -255,9 +259,9 @@ def main():
     exp.get_eval_matrix_base_model( data_test, labels_test)
     exp.update_model(data, labels)
 
-    row_idx_test = np.sum(labels_test!=-999, axis=1)>1
-    data_test = data_test[row_idx_test]
-    labels_test = labels_test[row_idx_test]
+    #row_idx_test = np.sum(labels_test!=-999, axis=1)>1
+    #data_test = data_test[row_idx_test]
+    #labels_test = labels_test[row_idx_test]
     print("Test data shape: ", data_test.shape)
     print("Evaluating Gumbel-Max SI-SCM")
     exp.get_eval_matrix( data_test, labels_test)
@@ -266,6 +270,8 @@ def main():
 
     exp.fit_nb_baseline( range(n_experts),data, labels)
     exp.get_eval_matrix_nb_baseline( data_test, labels_test)
+
+    exp.save_groups()
 
 
 

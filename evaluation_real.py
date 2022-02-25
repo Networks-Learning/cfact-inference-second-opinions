@@ -121,11 +121,30 @@ def main():
     print("#Pred: ", n_pred)
     print("#Pred Group: ", n_pred_group)
     print("#Pred not Group: ", n_pred_notgroup)
-    pred_per_data = [np.sum((naive_results[:,0]==d)) for d in range(n_data_test)]
-    print(np.mean(pred_per_data))
 
     print_overall_acc(siscm_results, naive_results, nb_baseline_results, gnb_base_results)
-    
+ ##################
+    groups = pd.read_csv(path+"SI-SCM_groups.csv").to_numpy()
+    group_sizes = np.sum(~np.isnan(groups), axis=1).T
+    w,h = get_fig_dim(width=487,fraction=0.7)
+    fig, axes = plt.subplots(figsize=(w,h))
+    axes.set_ylabel("Mutually Similar Groups")
+    axes.set_xlabel("Number of Experts in each Group")
+    # get rid of the frame
+    axes.spines['right'].set_visible(False)
+    axes.spines['top'].set_visible(False)
+    axes.spines['bottom'].set_visible(False)
+    axes.xaxis.set_ticks_position('none')
+    axes.xaxis.set_ticks([])
+    axes.yaxis.set_ticks(np.arange(15)+1)
+    # remove all the ticks and directly label each bar with respective value
+
+    axes.barh(y=np.arange(15)+1, width=group_sizes)
+    axes.bar_label(axes.containers[0], padding=3)
+    fig.tight_layout()
+    plt.savefig(path+"groups_hist.pdf")
+    plt.show()
+###################
     plot_confusion_matrix(siscm_results, "Gumbel-Max SI-SCM")
     plot_confusion_matrix(naive_results, "GNB")
     plot_confusion_matrix( nb_baseline_results, "GNB+CNB")
@@ -165,7 +184,7 @@ def main():
     ax_cb = divider.new_horizontal(size='5%', pad='10%')
     fig = axes.get_figure()
     fig.add_axes(ax_cb)
-    im = plot_diff_acc_group_2D(siscm_results, nb_baseline_results, "Mixed NB", n_experts,axes)
+    im = plot_diff_acc_group_2D(siscm_results, nb_baseline_results, "GNB+CNB", n_experts,axes)
     matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=6), orientation='vertical')#, ticks=[0,1,2,3,4])
     fig.tight_layout()
     plt.savefig(path+"compare_naivebayes_sc2.pdf")

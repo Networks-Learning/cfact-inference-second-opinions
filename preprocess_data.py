@@ -60,7 +60,7 @@ data_test = data_test[row_idx_test]
 labels_test = labels_test[row_idx_test]
 
 print("Training Data Shape", data.shape)
-print("Test Data Shape", data.shape)
+print("Test Data Shape", data_test.shape)
 has_disagreement = vec_has_disagreement(labels)
 print("Train -- Number of full agreement:", data.shape[0]-np.sum(has_disagreement))
 has_disagreement = vec_has_disagreement(labels_test)
@@ -72,6 +72,12 @@ print("Train -- Disagreement ratio ", ratio)
 ratio = np.nanmean(vec_ratio_disagreement(labels_test))
 print("Test -- Disagreement ratio ", ratio)
 
+train_preds = np.sum(labels!=-999)
+test_preds = np.sum(labels_test!=-999)
+total_preds = train_preds + test_preds
+print("Train -- Number of Predictions", train_preds)
+print("Test -- Number of Predictions", test_preds)
+print("Total -- Number of Predictions", total_preds)
 
 print("Saving data")
 df_data = pd.DataFrame(data)
