@@ -26,8 +26,9 @@ def plot_confusion_matrix(eval_matrix, model_name):
 
 
 def plot_diff_acc_2D(trained, baseline, baseline_name, n_experts,ax):
-    acc_trained = np.array([np.mean(trained[:,4]==trained[:,5], where= trained[:,2]==exp) for exp in range(n_experts)])
-    acc_baseline = np.array([np.mean(baseline[:,4]==baseline[:,5], where= baseline[:,2]==exp) for exp in range(n_experts)])
+    acc_trained = np.array([np.nanmean(trained[:,4]==trained[:,5], where= trained[:,2]==exp) for exp in range(n_experts)])
+    acc_baseline = np.array([np.nanmean(baseline[:,4]==baseline[:,5], where= baseline[:,2]==exp) for exp in range(n_experts)])
+    print("scenario 1 - #experts not displayed: ", np.arange(n_experts,dtype=int)[np.isnan(acc_trained)])
     print("scenario 1 - #experts Gumbel-Max SI-SCM is more accurate for than ",baseline_name,": ", np.sum(acc_trained>acc_baseline))
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
     #plt.title(" Accuracy per Expert SI-SCM vs. "+ baseline_name)
@@ -40,8 +41,8 @@ def plot_diff_acc_2D(trained, baseline, baseline_name, n_experts,ax):
     return im
 
 def plot_diff_acc_group_2D(trained, baseline, baseline_name, n_experts, ax):
-    acc_trained = np.array([np.mean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==1)) for exp in range(n_experts)])
-    acc_baseline = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==1)) for exp in range(n_experts)])
+    acc_trained = np.array([np.nanmean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==1)) for exp in range(n_experts)])
+    acc_baseline = np.array([np.nanmean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==1)) for exp in range(n_experts)])
     print("scenario 2 - #experts not displayed: ", np.arange(n_experts,dtype=int)[np.isnan(acc_trained)])
     print("scenario 2 - #experts Gumbel-Max SI-SCM is more accurate for than ",baseline_name,": ", np.sum(acc_trained>acc_baseline))
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
@@ -54,8 +55,8 @@ def plot_diff_acc_group_2D(trained, baseline, baseline_name, n_experts, ax):
     return im
 
 def plot_diff_acc_nongroup_2D(trained, baseline, baseline_name, n_experts):
-    acc_trained = np.array([np.mean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==0)) for exp in range(n_experts)])
-    acc_baseline = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
+    acc_trained = np.array([np.nanmean(trained[:,4]==trained[:,5], where= (trained[:,2]==exp) & (trained[:,6]==0)) for exp in range(n_experts)])
+    acc_baseline = np.array([np.nanmean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
     H, x_edges, y_edges = np.histogram2d(acc_trained, acc_baseline, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
     X, Y = np.meshgrid(x_edges, y_edges)
     plt.pcolormesh(X, Y, H, cmap='YlGnBu')
@@ -69,8 +70,8 @@ def plot_diff_acc_nongroup_2D(trained, baseline, baseline_name, n_experts):
     plt.show()
 
 def plot_acc_gng_2D( baseline, baseline_name, n_experts,ax):
-    acc_group = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==1)) for exp in range(n_experts)])
-    acc_not_group = np.array([np.mean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
+    acc_group = np.array([np.nanmean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==1)) for exp in range(n_experts)])
+    acc_not_group = np.array([np.nanmean(baseline[:,4]==baseline[:,5], where= (baseline[:,2]==exp) & (baseline[:,6]==0)) for exp in range(n_experts)])
     print("scenario 2 vs.3 - #experts ", baseline_name," more accurate in 2 than 3: ", np.sum(acc_group>acc_not_group))
     H, x_edges, y_edges = np.histogram2d(acc_group, acc_not_group, bins=(np.arange(0, 1.1, 0.025),np.arange(0, 1.1, 0.025)))
     X, Y = np.meshgrid(x_edges, y_edges)
