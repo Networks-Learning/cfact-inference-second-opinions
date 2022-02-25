@@ -215,7 +215,7 @@ class RealExperiment:
 
     def save_groups(self):
         groups = { i: g for i,g in enumerate(self.scm_model.group_members_sorted)}
-        groups = { i: g for i,g in enumerate(group)}
+        groups = { i: g for i,g in enumerate(groups)}
         df_groups = pd.DataFrame.from_dict(groups, orient='index')
         df_groups.to_csv('results_real/SI-SCM_groups.csv',index=False)
 
