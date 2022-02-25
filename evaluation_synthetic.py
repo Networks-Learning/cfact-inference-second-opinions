@@ -8,27 +8,6 @@ from helper import *
 path="results_synthetic/"
 
 def plot(s_list, N_list, real_mean, trained_mean, naive_mean, real_std, trained_std, naive_std):
-    """
-    plt.title("Tradeoff \# Training Samples and Sparsity s")
-    plt.xlabel("Number of training samples")
-    plt.ylabel("0/1-Score")
-    for i, s in enumerate(s_list):
-        plt.errorbar(N_list, trained_mean[i], yerr=trained_std[i], fmt="-o", label="s = %.2f" % s)
-        plt.legend()
-    plt.savefig("tradeoff.pdf")
-    plt.show()
-    for i, row in enumerate(trained_mean):
-        plt.title("Comparison of Models for s = %.2f" % s_list[i])
-        plt.xlabel("Number of training samples")
-        plt.ylabel("0/1-Score")
-        plt.ylim(0,1)
-        plt.errorbar(N_list, trained_mean[i], yerr=trained_std[i], fmt="-o", label="Our SCM")
-        plt.errorbar(N_list, naive_mean[i], yerr=naive_std[i], fmt="-o", label="Naive SCM")
-        plt.errorbar(N_list, real_mean[i], yerr=real_std[i], fmt="-o", label="Real SCM")
-        plt.legend(loc="upper right")
-        plt.savefig("comparison_%.2f.pdf"% s_list[i])
-        plt.show()
-    """
     cmap = get_cmap(5)
     w,h = get_fig_dim(width=487,fraction=0.7)
     fig, ax = plt.subplots(figsize=(w,h))
@@ -92,51 +71,49 @@ def get_cmap(n, name='gist_earth'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n+5)
 
-"""
-def plot_rate_ARI(s_list, N_list, mean_rate, mean_ari, std_rate, std_ari):
-    n= s_list.shape[0]
-    cmap = get_cmap(n)
-
-    fig, ax = plt.subplots()
-    ax.set_xlabel("Number of training samples")
-    #plt.ylabel("Rate of edges inside real groups")
-    for i, s in enumerate(s_list):
-        if i in [1,3,4]: continue
-        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i), label="s = %.2f" % s)
-
-    ax2 = ax.twinx()
-    for i, s in enumerate(s_list):
-        if i in [1,3,4]: continue
-        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i), fmt="--o")
-    
-    ax2.plot([],[], ls="-",c='black', label='ARI values')
-    ax2.plot([],[], ls="--",c='black', label='Edge Ratio')
-    
-    ax.legend(loc=4)
-    ax2.legend(loc=1)
-    plt.savefig("Rate_ARI_plot_1.pdf")
-    plt.show()
-
-    fig, ax = plt.subplots()
-    ax.set_xlabel("Number of training samples")
-    #plt.ylabel("Rate of edges inside real groups")
-    for i, s in enumerate(s_list):
-        if i in [0,2]: continue
-        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i), fmt="--o", label="s = %.2f" % s)
-
-    ax2 = ax.twinx()
-    for i, s in enumerate(s_list):
-        if i in [0,2]: continue
-        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i))
-    
-    ax2.plot([],[], ls="-",c='black', label='ARI values')
-    ax2.plot([],[], ls="--",c='black', label='Edge Rate')
-    
-    ax.legend(loc=4)
-    ax2.legend(loc=1)
-    plt.savefig(path+"Rate_ARI_plot_2.pdf")
-    plt.show()
-"""
+#def plot_rate_ARI(s_list, N_list, mean_rate, mean_ari, std_rate, std_ari):
+#    n= s_list.shape[0]
+#    cmap = get_cmap(n)
+#
+#    fig, ax = plt.subplots()
+#    ax.set_xlabel("Number of training samples")
+#    #plt.ylabel("Rate of edges inside real groups")
+#    for i, s in enumerate(s_list):
+#        if i in [1,3,4]: continue
+#        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i), label="s = %.2f" % s)
+#
+#    ax2 = ax.twinx()
+#    for i, s in enumerate(s_list):
+#        if i in [1,3,4]: continue
+#        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i), fmt="--o")
+#    
+#    ax2.plot([],[], ls="-",c='black', label='ARI values')
+#    ax2.plot([],[], ls="--",c='black', label='Edge Ratio')
+#    
+#    ax.legend(loc=4)
+#    ax2.legend(loc=1)
+#    plt.savefig("Rate_ARI_plot_1.pdf")
+#    plt.show()
+#
+#    fig, ax = plt.subplots()
+#    ax.set_xlabel("Number of training samples")
+#    #plt.ylabel("Rate of edges inside real groups")
+#    for i, s in enumerate(s_list):
+#        if i in [0,2]: continue
+#        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i), fmt="--o", label="s = %.2f" % s)
+#
+#    ax2 = ax.twinx()
+#    for i, s in enumerate(s_list):
+#        if i in [0,2]: continue
+#        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i))
+#    
+#    ax2.plot([],[], ls="-",c='black', label='ARI values')
+#    ax2.plot([],[], ls="--",c='black', label='Edge Rate')
+#    
+#    ax.legend(loc=4)
+#    ax2.legend(loc=1)
+#    plt.savefig(path+"Rate_ARI_plot_2.pdf")
+#    plt.show()
 
 
 
