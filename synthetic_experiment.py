@@ -150,7 +150,7 @@ class SyntheticExperiment:
       df_std_inedge = pd.DataFrame(std_rate_inedge, columns = N_training_list, index= sparsity_prob_list)
       df_std_inedge.to_csv("results_synthetic/std_inedge.csv")
 
-      scm_model.save()
+      #scm_model.save()
  
 
 def main():
