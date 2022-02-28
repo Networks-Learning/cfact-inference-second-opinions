@@ -45,7 +45,7 @@ def plot_group_comparison(s_list, N_list, mean_ari, std_ari):
     ax.set_ylabel("Adjusted Random Index (ARI)")
     for i, s in enumerate(s_list):
         if i in [0]: continue
-        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i), label="s = %.2f" % s)
+        ax.errorbar(N_list, mean_ari[i], yerr=std_ari[i], fmt="-o", c=cmap(n-i+1), label="s = %.2f" % s)
     ax.legend()
     fig.tight_layout()
     plt.savefig(path+"ARI_plot.pdf")
@@ -60,7 +60,7 @@ def plot_rate_inedge(s_list, N_list, mean_rate, std_rate):
     ax.set_ylabel("Edge Ratio")
     for i, s in enumerate(s_list):
         if i in [0]: continue
-        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i), fmt="--o", label="s = %.2f" % s)
+        ax.errorbar(N_list, mean_rate[i], yerr=std_rate[i], c=cmap(n-i+1), fmt="--o", label="s = %.2f" % s)
     ax.legend()
     fig.tight_layout()
     plt.savefig(path+"Inedge_plot.pdf")
