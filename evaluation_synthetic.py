@@ -6,20 +6,21 @@ import matplotlib.pyplot as plt
 from helper import *
 
 path="results_synthetic/"
-
-def plot(s_list, N_list, real_mean, trained_mean, naive_mean, real_std, trained_std, naive_std):
+#errorbar plot of loss results
+def plot_loss(s_list, N_list, real_mean, trained_mean, naive_mean, real_std, trained_std, naive_std):
     cmap = get_cmap(5)
     w,h = get_fig_dim(width=487,fraction=0.7)
-    fig, ax = plt.subplots(figsize=(w,h))
-    ax.set_xlabel("Number of training samples")
-    ax.set_ylabel("0/1-Score")
-    ax.set_ylim(0.2,1)
-    ax.errorbar(N_list, naive_mean[-1], yerr=naive_std[-1], fmt="-o", c=cmap(0), label="Marginal Distr. M(H)")
-    ax.errorbar(N_list, real_mean[-1], yerr=real_std[-1], fmt="-o", c=cmap(7),label="True SI-SCM M*")
-    ax.errorbar(N_list, trained_mean[-5], yerr=trained_std[-5], fmt="-o", c=cmap(6), label="Gumbel-Max SI-SCM for s=%.2f"% s_list[-5])
-    ax.legend(loc="upper right")
-    plt.savefig(path+"comparison_1.pdf")
-    plt.show()
+
+    # fig, ax = plt.subplots(figsize=(w,h))
+    # ax.set_xlabel("Number of training samples")
+    # ax.set_ylabel("0/1-Score")
+    # ax.set_ylim(0.2,1)
+    # ax.errorbar(N_list, naive_mean[-1], yerr=naive_std[-1], fmt="-o", c=cmap(0), label="Marginal Distr. M(H)")
+    # ax.errorbar(N_list, real_mean[-1], yerr=real_std[-1], fmt="-o", c=cmap(7),label="True SI-SCM M*")
+    # ax.errorbar(N_list, trained_mean[-5], yerr=trained_std[-5], fmt="-o", c=cmap(6), label="Gumbel-Max SI-SCM for s=%.2f"% s_list[-5])
+    # ax.legend(loc="upper right")
+    # plt.savefig(path+"comparison_1.pdf")
+    #plt.show()
 
     fig, ax = plt.subplots(figsize=(w,h))
     ax.set_xlabel("Number of training samples")
@@ -34,9 +35,10 @@ def plot(s_list, N_list, real_mean, trained_mean, naive_mean, real_std, trained_
     ax.legend(loc="upper right")
     fig.tight_layout()
     plt.savefig(path+"comparison_2.pdf")
-    plt.show()
+    #plt.show()
 
-def plot_group_comparison(s_list, N_list, mean_ari, std_ari):
+#errorbar plot of ARI values
+def plot_ARI_value(s_list, N_list, mean_ari, std_ari):
     n= s_list.shape[0]
     cmap = get_cmap(n)
     w,h = get_fig_dim(width=487,fraction=0.7)
@@ -49,9 +51,10 @@ def plot_group_comparison(s_list, N_list, mean_ari, std_ari):
     ax.legend()
     fig.tight_layout()
     plt.savefig(path+"ARI_plot.pdf")
-    plt.show()
+    #plt.show()
 
-def plot_rate_inedge(s_list, N_list, mean_rate, std_rate):
+#errorbar plot of ratio of edges inside true groups
+def plot_inedge_ratio(s_list, N_list, mean_rate, std_rate):
     n= s_list.shape[0]
     cmap = get_cmap(n)
     w,h = get_fig_dim(width=487,fraction=0.7)
@@ -64,8 +67,9 @@ def plot_rate_inedge(s_list, N_list, mean_rate, std_rate):
     ax.legend()
     fig.tight_layout()
     plt.savefig(path+"Inedge_plot.pdf")
-    plt.show()
+    #plt.show()
 
+#return colormap of size n+5
 def get_cmap(n, name='gist_earth'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
@@ -116,12 +120,12 @@ def get_cmap(n, name='gist_earth'):
 #    plt.show()
 
 
-
 def main():
     latexify()
     mean_trained_df = pd.read_csv(path+"mean_trained.csv", header =0, index_col = 0)
     s_list = mean_trained_df.index.to_numpy(dtype=float)
     N_list = mean_trained_df.columns.to_numpy(dtype=int)
+
     print("Reading Data...")
     mean_trained = mean_trained_df.to_numpy(na_value=np.nan)
     mean_naive = pd.read_csv(path+"mean_naive.csv", header =0, index_col = 0).to_numpy(na_value=np.nan)
@@ -136,10 +140,10 @@ def main():
     std_inedge = pd.read_csv(path+"std_inedge.csv", header =0, index_col = 0).to_numpy(na_value=np.nan)
     
     print("Generating Plots...")
-    plot_rate_inedge(s_list, N_list, mean_inedge, std_inedge)
-    plot_group_comparison(s_list, N_list, mean_groups, std_groups)
+    plot_inedge_ratio(s_list, N_list, mean_inedge, std_inedge)
+    plot_ARI_value(s_list, N_list, mean_groups, std_groups)
     #plot_rate_ARI(s_list, N_list,mean_inedge, mean_groups, std_inedge,std_groups)
-    plot(s_list, N_list, mean_real, mean_trained, mean_naive, std_real, std_trained, std_naive)
+    plot_loss(s_list, N_list, mean_real, mean_trained, mean_naive, std_real, std_trained, std_naive)
 
 if __name__ == "__main__":
     main()

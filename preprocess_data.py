@@ -6,7 +6,7 @@ import networkx as nx
 from sklearn.model_selection import train_test_split
 from networkx.algorithms.approximation import max_clique
 
-n_nodes = 2571
+n_experts = 2571
 
 df = pd.read_csv('data/cifar10_feat+labels.csv').fillna(-999)
 data_all = df.filter(like='feature', axis=1).to_numpy()
@@ -27,7 +27,7 @@ def ratio_disagreement(labels, exp):
 vec_has_disagreement = np.vectorize(has_disagreement, signature='(n)->()')
 sampling_mask = vec_has_disagreement(labels_all)
 print("Number of resampled datapoints:", np.sum(sampling_mask))
-vec_ratio_disagreement = np.vectorize(lambda d: np.array([ratio_disagreement(d,exp) for exp in range(n_nodes)]), signature='(n)->(m)')
+vec_ratio_disagreement = np.vectorize(lambda d: np.array([ratio_disagreement(d,exp) for exp in range(n_experts)]), signature='(n)->(m)')
 ratio = np.nanmean(vec_ratio_disagreement(labels_all))
 print("CIFAR-10H -- Disagreement ratio ", ratio)
 
@@ -41,7 +41,7 @@ seed = {42,3993}
 data, data_test, labels, labels_test = train_test_split(data_all, labels_all, test_size=0.20, random_state=3993)
 
 #choose random subset of experts with enough data points
-has_all_labels = [np.array_equal(np.unique(labels[:,exp]),np.array([-999,0,1,2,3,4,5,6,7,8,9])) for exp in range(n_nodes)]
+has_all_labels = [np.array_equal(np.unique(labels[:,exp]),np.array([-999,0,1,2,3,4,5,6,7,8,9])) for exp in range(n_experts)]
 experts = (np.sum(labels!=-999, axis=0) > 130) & (np.sum(labels_test!=-999, axis=0) > 20) & (np.array(has_all_labels,dtype=bool))
 print("# experts with data after resampling: ", np.sum(experts))
 print("Experts ID:")
