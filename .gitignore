@@ -1,10 +1,10 @@
 # directories
 git/
 scm-env/
-data/
-features/
-results_synthetic/
-results_real/
+data/*
+features/*
+results_synthetic/*
+results_real/*
 #pictures
 *.png
 #graphs
