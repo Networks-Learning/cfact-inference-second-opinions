@@ -174,7 +174,7 @@ def main():
     #create synthetic experiment with parameters
     exp = SyntheticExperiment(n_classes, n_features, n_groups, size_max, size_min, seed)
     #number of test datapoints
-    N_test=100
+    N_test=1000
     #number of experiment rounds
     T= 5
     #list of different amounts of training data
