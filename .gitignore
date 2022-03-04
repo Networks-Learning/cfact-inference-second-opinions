@@ -5,7 +5,7 @@ scm-env/
 *.png
 *.pdf
 # data files
-#.DS_Store
+.DS_Store
 *.csv
 *.npz
 *.pyc
