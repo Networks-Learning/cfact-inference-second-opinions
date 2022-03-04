@@ -1,12 +1,14 @@
 # directories
 git/
 scm-env/
-data/*
-features/*
-results_synthetic/*
-results_real/*
 #pictures
 *.png
+*.pdf
+# data files
+#.DS_Store
+*.csv
+*.npz
+*.pyc
 #graphs
 *.gexf
 # Byte-compiled / optimized / DLL files
