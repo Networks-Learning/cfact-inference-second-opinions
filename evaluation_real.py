@@ -142,9 +142,9 @@ def main():
     # remove all the ticks and directly label each bar with respective value
     axes.xaxis.set_ticks_position('none')
     axes.xaxis.set_ticks([])
-    axes.yaxis.set_ticks(np.arange(15)+1)
+    axes.yaxis.set_ticks(np.arange(group_sizes.shape[0])+1)
 
-    axes.barh(y=np.arange(15)+1, width=group_sizes)
+    axes.barh(y=np.arange(group_sizes.shape[0])+1, width=group_sizes)
     axes.bar_label(axes.containers[0], padding=3)
     fig.tight_layout()
     plt.savefig(path+"groups_hist.pdf")

@@ -218,26 +218,26 @@ class SISCM:
     #estimate counterfactual probabilities
     def predict_cfc_proba(self, data, obs_inds, obs_labels, n_samples = ...):
         if n_samples is ...: n_samples = self.n_samples
-        proba = np.empty((data.shape[0], self.n_experts, self.n_classes), dtype=float)
+        cf_proba = np.empty((data.shape[0], self.n_experts, self.n_classes), dtype=float)
         #for each data point estimate cf probabilities
         for x in range(data.shape[0]):
             #get marginal probabilities by groups
-            proba = self.get_group_proba(data[x,:], self.group_members_sorted)
+            marginal_proba = self.get_group_proba(data[x,:], self.group_members_sorted)
             #estimate counterfactual probabilities (for experts not in observed group ~ marginal probabilities)
-            list_group_proba = [ self.sample_predictions_by_group(group_proba, n_samples, return_proba=True) for group_proba in proba]
+            list_group_proba = [ self.sample_predictions_by_group(group_proba, n_samples, return_proba=True) for group_proba in marginal_proba]
 
             #get observed experts group index and position in group
             group, i = self.group_membership_dict[obs_inds[x]]
             #estimate counterfactual probabilities of this group
-            list_group_proba[group] = self.sample_cf_predictions_by_group(proba[group], i, obs_labels[x], n_samples, return_proba=True)
+            list_group_proba[group] = self.sample_cf_predictions_by_group(marginal_proba[group], i, obs_labels[x], n_samples, return_proba=True)
             predictions = np.empty((self.n_experts, self.n_classes))
 
             #reorder predictions according to experts global id
             for k, (g,i) in sorted(self.group_membership_dict.items()):
                 predictions[k]=list_group_proba[g][i]
-            proba[x] = predictions
+            cf_proba[x] = predictions
 
-        return proba
+        return cf_proba
     
     #samples counterfactual predictions and predictions from marginal distribution model for each pair of experts on the data, returns avg. diff in error for pair
     #error_diff[obs_ind][pred_ind] = error diff. (0/1-loss) of the counterfactual prediction of pred_ind's label given obs_ind's label to the prediction from marginal distribution

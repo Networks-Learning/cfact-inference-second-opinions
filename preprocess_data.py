@@ -37,7 +37,6 @@ data_all = data_all[sampling_mask]
 labels_all = labels_all[sampling_mask]
 
 print("Train test split")
-seed = {42,3993}
 data, data_test, labels, labels_test = train_test_split(data_all, labels_all, test_size=0.20, random_state=3993)
 
 #choose random subset of experts with enough data points
