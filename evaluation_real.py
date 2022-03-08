@@ -167,6 +167,15 @@ def main():
     plt.show()
  
     fig, axes = plt.subplots(figsize=(w,h))
+    im = plot_expert_acc(siscm_psi_results, nb_baseline_results, "GNB+CNB", n_experts, axes)
+    axes.set(aspect=1)
+    #plt.colorbar(im, location='right',shrink=0.7)
+    fig.tight_layout()
+    plt.savefig(path+"compare_naivebayes_sc1.pdf")
+    plt.show()
+
+    w, _ = get_fig_dim(width=487,fraction=0.48)
+    fig, axes = plt.subplots(figsize=(w,h))
     axes.set(aspect=1)
     #plt.colorbar(im, location='right',shrink=0.7)
     divider = make_axes_locatable(axes)
@@ -179,17 +188,6 @@ def main():
     plt.savefig(path+"compare_untrained_sc2.pdf")
     plt.show()
     
-
-    fig, axes = plt.subplots(figsize=(w,h))
-    im = plot_expert_acc(siscm_psi_results, nb_baseline_results, "GNB+CNB", n_experts, axes)
-    axes.set(aspect=1)
-    #plt.colorbar(im, location='right',shrink=0.7)
-    fig.tight_layout()
-    plt.savefig(path+"compare_naivebayes_sc1.pdf")
-    plt.show()
-    
-
-    w, _ = get_fig_dim(width=487,fraction=0.48)
     fig, axes = plt.subplots(figsize=(w,h))
     axes.set(aspect=1)
     #plt.colorbar(im, location='right',shrink=0.7)
