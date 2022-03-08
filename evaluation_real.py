@@ -128,7 +128,7 @@ def main():
 
  ##################
     #plot group sizes of SI-SCM M(Psi) as vertical barplot
-    groups = pd.read_csv(path+"SI-SCM_groups.csv").to_numpy()
+    groups = pd.read_csv(path+"SI-SCM_groups.csv",header=None).to_numpy()
     group_sizes = np.sum(~np.isnan(groups), axis=1).T
 
     w,h = get_fig_dim(width=487,fraction=0.7)
@@ -167,9 +167,14 @@ def main():
     plt.show()
  
     fig, axes = plt.subplots(figsize=(w,h))
-    im =plot_expert_acc_same_group(siscm_psi_results, siscm_H_results, "GNB", n_experts,axes)
     axes.set(aspect=1)
     #plt.colorbar(im, location='right',shrink=0.7)
+    divider = make_axes_locatable(axes)
+    ax_cb = divider.new_horizontal(size='5%', pad='10%')
+    fig = axes.get_figure()
+    fig.add_axes(ax_cb)
+    im =plot_expert_acc_same_group(siscm_psi_results, siscm_H_results, "GNB", n_experts,axes)
+    matplotlib.colorbar.ColorbarBase(ax_cb, cmap='YlGnBu', norm=matplotlib.colors.Normalize(vmin=0, vmax=6), orientation='vertical')#, ticks=[0,1,2,3,4])
     fig.tight_layout()
     plt.savefig(path+"compare_untrained_sc2.pdf")
     plt.show()
