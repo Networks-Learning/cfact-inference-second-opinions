@@ -1,6 +1,6 @@
 # cfact-label-inference
 
-This is a repository containing code for the paper [Counterfactual Inference of Second Opinions](https://arxiv.org/abs/2203.08653).
+This is a repository containing the code used in the paper [Counterfactual Inference of Second Opinions](https://arxiv.org/abs/2203.08653).
 
 ## Install and download prerequisites
 
