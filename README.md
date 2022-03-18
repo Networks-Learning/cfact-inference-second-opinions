@@ -1,5 +1,7 @@
 # cfact-label-inference
 
+This is a repository containing code for the paper [Counterfactual Inference of Second Opinions](https://arxiv.org/abs/2203.08653).
+
 ## Install and download prerequisites
 
 Install required packages with `pip install -r requirements.txt`
@@ -61,4 +63,14 @@ Download CIFAR-10H dataset into the directory `./data` from https://github.com/j
 - Run `evaluation_real.py` to generate the plots from the evaluation results
 - All experimental results and plots will be stored in directory `./results_real`
 
+## Citation
+If you use parts of the code in this repository for your own research, please consider citing:
 
+```
+@article{benz2022counterfactual,
+        title={Counterfactual Inference of Second Opinions},
+        author={Corvelo Benz, Nina and Gomez-Rodriguez, Manuel},
+        journal={arXiv preprint arXiv:2203.08653},
+        year={2022}
+}
+```
